@@ -47,5 +47,8 @@ ln -s ${FORCE} "${PWD}/.p10k.zsh" ~/.p10k.zsh || show_ln_fail_help
 
 fix_executable_permissions
 
+# Do not track custom config
+git update-index --skip-worktree alias/custom.sh env/custom.sh
+
 echo "Bootstrap complete!"
 echo "Run 'source ~/.zshrc' to reload the environment"

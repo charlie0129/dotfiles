@@ -18,3 +18,6 @@ cp -r "${BACKUP_DIR}/bin/custom" "bin"
 cp "${BACKUP_DIR}/env/custom.sh" "env/custom.sh"
 
 echo "Your custom config have been restored"
+
+# Do not track custom config
+git update-index --skip-worktree alias/custom.sh env/custom.sh
