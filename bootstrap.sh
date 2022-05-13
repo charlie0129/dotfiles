@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Git must be installed
+if ! command -v git >/dev/null 2>&1; then
+    echo "Git is not installed" 1>&2
+    exit 1
+fi
+
 # cd into where this script lives
 SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 cd "${SCRIPT_DIR}" || exit 1
