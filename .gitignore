@@ -2,7 +2,7 @@
 test.sh
 
 # Custom resources
-#alias/custom.sh
+alias/custom.sh
+env/custom.sh
 bin/custom/*
 !bin/custom/.gitkeep
-#env/custom.sh
