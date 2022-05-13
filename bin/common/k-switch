@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# Switched between Kubernetes configs
+
+# list all files in ~/.kube/ starts with "config-", and remove "config-"
+config_files=$(ls ~/.kube/ | grep "config-" | sed "s/config-//")
+# should only have 1 parameter
+if [[ $# -ne 1 ]]; then
+    echo "usage: k-switch <config>" >&2
+    echo "available config: " >&2
+    echo "${config_files}" >&2
+    exit 1
+fi
+# check if the parameter is in the list
+if [[ ! ${config_files} =~ ${1} ]]; then
+    echo "invalid config: ${1}" >&2
+    echo "available config: " >&2
+    echo "${config_files}" >&2
+    exit 1
+fi
+# switch to the config file
+export KUBECONFIG=~/.kube/config
+cp ~/.kube/config-${1} ~/.kube/config

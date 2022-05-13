@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# Initialize a ramdisk and mount it to /Volumes/ramdisk
+
+if [[ $# -lt 1 ]]; then
+    echo "Too few parameters." >&2
+    echo "Note:" >&2
+    echo "  The first parameter should be the size of the RAM disk (in MB)." >&2
+    exit 1
+fi
+
+re='^[0-9]+$'
+if ! [[ $1 =~ $re ]]; then
+    echo "error: invalid size" >&2
+    exit 1
+fi
+
+echo -n "Proceed with a $1 MB RAM disk [y/n]?"
+while true; do
+    read -r yn
+    case $yn in
+    [Yy]*)
+        break
+        ;;
+    [Nn]*) exit 0 ;;
+    *) echo "Please answer yes(Y/y) or no(N/n)." ;;
+    esac
+done
+
+DISK_NAME=ramdisk
+MOUNT_PATH=/Volumes/$DISK_NAME
+DISK_SPACE=$1
+if [ ! -e $MOUNT_PATH ]; then
+    diskutil erasevolume HFS+ $DISK_NAME $(hdiutil attach -nomount ram://$(($DISK_SPACE * 1024 * 2)))
+fi

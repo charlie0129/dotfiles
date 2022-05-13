@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# Resets sensor limits of iStat Menus to my preference
+
+cat <<EOF | sqlite3 $HOME/Library/Application\ Support/iStat\ Menus/databases/iStatMenusStatus.db && killall iStat\ Menus\ Status
+-- System Total
+UPDATE "main"."sensor_limits"
+SET "low" = 0.01, "high" = 82.0 
+WHERE "uuid" = 'PSTR';
+
+-- CPU Package Total
+UPDATE "main"."sensor_limits"
+SET "low" = 0.01, "high" = 35.0 
+WHERE "uuid" = 'PCPT';
+
+-- CPU Package Core
+UPDATE "main"."sensor_limits"
+SET "low" = 0.01, "high" = 30.0 
+WHERE "uuid" = 'PCPC';
+
+-- CPU Computing High Side
+UPDATE "main"."sensor_limits"
+SET "low" = 0.01, "high" = 50.0 
+WHERE "uuid" = 'PC0R';
+
+-- CPU Core1
+UPDATE "main"."sensor_limits"
+SET "low" = 30.0, "high" = 80.0 
+WHERE "uuid" = 'TC1C';
+
+-- CPU Core2
+UPDATE "main"."sensor_limits"
+SET "low" = 30.0, "high" = 80.0 
+WHERE "uuid" = 'TC2C';
+
+-- CPU Core3
+UPDATE "main"."sensor_limits"
+SET "low" = 30.0, "high" = 80.0 
+WHERE "uuid" = 'TC3C';
+
+-- CPU Core4
+UPDATE "main"."sensor_limits"
+SET "low" = 30.0, "high" = 80.0 
+WHERE "uuid" = 'TC4C';
+
+-- CPU Core5
+UPDATE "main"."sensor_limits"
+SET "low" = 30.0, "high" = 80.0 
+WHERE "uuid" = 'TC5C';
+
+-- CPU Core6
+UPDATE "main"."sensor_limits"
+SET "low" = 30.0, "high" = 80.0 
+WHERE "uuid" = 'TC6C';
+
+-- CPU PECI
+UPDATE "main"."sensor_limits"
+SET "low" = 30.0, "high" = 80.0 
+WHERE "uuid" = 'TCXC';
+EOF

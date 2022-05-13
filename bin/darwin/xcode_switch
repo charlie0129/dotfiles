@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+# Switch between Xcode command line tools and Xcode app
+
+if [[ $# -gt 1 ]]; then
+    echo "Too many parameters." >&2
+    exit 1
+fi
+
+if [[ $1 == "cli" ]]; then
+    sudo xcode-select --switch /Library/Developer/CommandLineTools
+elif [[ $1 == "xcode" ]]; then
+    sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+else
+    echo "invalid option! available options: cli, xcode" >&2
+    exit 1
+fi

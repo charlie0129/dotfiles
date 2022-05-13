@@ -35,8 +35,16 @@ function show_ln_fail_help() {
     exit 1
 }
 
+function fix_executable_permissions() {
+    find bin -exec chmod +x {} \;
+}
 
-
-# link files
+# Link files
 ln -s ${FORCE} "${PWD}/.zshrc" ~/.zshrc || show_ln_fail_help
+ln -s ${FORCE} "${PWD}/.zshenv" ~/.zshenv || show_ln_fail_help
 ln -s ${FORCE} "${PWD}/.p10k.zsh" ~/.p10k.zsh || show_ln_fail_help
+
+fix_executable_permissions
+
+echo "Bootstrap complete!"
+echo "Run 'source ~/.zshrc' to reload the environment"

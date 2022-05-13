@@ -1,0 +1,8 @@
+.DS_Store
+test.sh
+
+# Custom resources
+alias/custom.sh
+bin/custom/*
+!bin/custom/.gitkeep
+env/custom.sh
