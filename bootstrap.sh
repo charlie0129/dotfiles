@@ -37,6 +37,7 @@ function show_ln_fail_help() {
 
 function fix_executable_permissions() {
     find bin -exec chmod +x {} \;
+    chmod -x bin/custom/.gitkeep
 }
 
 # Link files
