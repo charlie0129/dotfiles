@@ -18,6 +18,7 @@ if [ "${PWD}" != "${HOME}/dotfiles" ]; then
 fi
 
 FORCE=""
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -51,10 +52,19 @@ ln -s ${FORCE} "${PWD}/.zshrc" ~/.zshrc || show_ln_fail_help
 ln -s ${FORCE} "${PWD}/.zshenv" ~/.zshenv || show_ln_fail_help
 ln -s ${FORCE} "${PWD}/.p10k.zsh" ~/.p10k.zsh || show_ln_fail_help
 
+# Add +x permissions to all executables
 fix_executable_permissions
+
+# Install crontabs
+# Install root crontab for darwin
+CRONFILE="$HOME/dotfiles/cron/${OS}/root.conf"
+if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ]; then
+    sudo crontab "${CRONFILE}"
+fi
+# Install crontabs complete
 
 # Do not track custom config
 git update-index --skip-worktree alias/custom.sh env/custom.sh
 
 echo "Bootstrap complete!"
-echo "Run 'source ~/.zshrc' to reload the environment"
+echo "Run reopen your terminal session or 'source ~/.zshrc' to reload the environment"
