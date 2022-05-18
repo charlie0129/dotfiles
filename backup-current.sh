@@ -20,16 +20,6 @@ BACKUP_FILES=(
     ".zsh_history"
 )
 
-# for i in "${BACKUP_DIRS[@]}"; do
-#     # echo "${i}" "${BACKUP_DIST}/${i/${HOME}\//}"
-#     cp -r "${i}" "${BACKUP_DIST}/${i/${HOME}\//}"
-# done
-
-# for i in "${BACKUP_FILES[@]}"; do
-#     # echo "${i}" "${BACKUP_DIST}/${i/${HOME}\//}"
-#     cp -r "${i}" "${BACKUP_DIST}/${i/${HOME}\//}"
-# done
-
 # tar BACKUP_DIST
 tar czf "${BACKUP_DIST}.tar.gz" --directory="${HOME}" "${BACKUP_DIRS[@]}" "${BACKUP_FILES[@]}" || exit 1
 
