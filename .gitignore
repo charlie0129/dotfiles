@@ -5,4 +5,5 @@ test.sh
 alias/custom.sh
 env/custom.sh
 bin/custom/*
+custom-omz-plugins.sh
 !bin/custom/.gitkeep
