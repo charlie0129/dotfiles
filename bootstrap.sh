@@ -20,13 +20,13 @@ fi
 # If zsh-autosuggestions is not installed, install it
 ZSH_AUTOSUGGESTIONS_DIR="$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 if [ ! -d "${ZSH_AUTOSUGGESTIONS_DIR}" ]; then
-    git clone "https://github.com/zsh-users/zsh-autosuggestions.git" "${ZSH_AUTOSUGGESTIONS_DIR}"
+    git clone --depth=1 "https://github.com/zsh-users/zsh-autosuggestions.git" "${ZSH_AUTOSUGGESTIONS_DIR}"
 fi
 
 # If zsh-syntax-highlighting is not installed, install it
 ZSH_SYNTAX_HIGHLIGHTING_DIR="$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
 if [ ! -d "${ZSH_SYNTAX_HIGHLIGHTING_DIR}" ]; then
-    git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${ZSH_SYNTAX_HIGHLIGHTING_DIR}"
+    git clone --depth=1 "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${ZSH_SYNTAX_HIGHLIGHTING_DIR}"
 fi
 
 # cd into where this script lives
