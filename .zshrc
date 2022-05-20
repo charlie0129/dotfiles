@@ -8,6 +8,8 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
@@ -71,25 +73,25 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 # Show prompt changes if mode changes in vi mode
 VI_MODE_RESET_PROMPT_ON_MODE_CHANGE=true
 
-# Lazy load nvm
-export NVM_LAZY_LOAD=true
+# Load custom plugins
+source "$HOME/dotfiles/custom-omz-plugins.sh"
 
 # Which plugins would you like to load?
 # Standard plugins can be found in ~/.oh-my-zsh/plugins/*
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(
+default_plugins=(
     git
     zsh-autosuggestions
     zsh-syntax-highlighting
     extract
     z
     vi-mode
-    docker
     colored-man-pages
-    zsh-nvm
 )
+
+plugins=("${default_plugins[@]}" "${custom_additional_plugins[@]}")
 
 source $ZSH/oh-my-zsh.sh
 
@@ -108,7 +110,6 @@ export EDITOR="vim"
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # Source alias in this dotfiles repo
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 # Custom alias always loads first
 if [ -f "$HOME/dotfiles/alias/custom.sh" ]; then
     source "$HOME/dotfiles/alias/custom.sh"

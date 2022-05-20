@@ -6,6 +6,29 @@ if ! command -v git >/dev/null 2>&1; then
     exit 1
 fi
 
+# Curl must be installed
+if ! command -v curl >/dev/null 2>&1; then
+    echo "Curl is not installed" 1>&2
+    exit 1
+fi
+
+# If .oh-my-zsh dir does not exist, install oh-my-zsh
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+fi
+
+# If zsh-autosuggestions is not installed, install it
+ZSH_AUTOSUGGESTIONS_DIR="$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+if [ ! -d "${ZSH_AUTOSUGGESTIONS_DIR}" ]; then
+    git clone "https://github.com/zsh-users/zsh-autosuggestions.git" "${ZSH_AUTOSUGGESTIONS_DIR}"
+fi
+
+# If zsh-syntax-highlighting is not installed, install it
+ZSH_SYNTAX_HIGHLIGHTING_DIR="$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+if [ ! -d "${ZSH_SYNTAX_HIGHLIGHTING_DIR}" ]; then
+    git clone "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${ZSH_SYNTAX_HIGHLIGHTING_DIR}"
+fi
+
 # cd into where this script lives
 SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 cd "${SCRIPT_DIR}" || exit 1
@@ -63,8 +86,13 @@ if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ]; then
 fi
 # Install crontabs complete
 
-# Do not track custom config
-git update-index --skip-worktree alias/custom.sh env/custom.sh
+# Do not track custom configs
+CUSTOM_CONFIGS=(
+    alias/custom.sh
+    env/custom.sh
+    custom-omz-plugins.sh
+)
+git update-index --skip-worktree "${CUSTOM_CONFIGS[@]}"
 
 echo "Bootstrap complete!"
 echo "Run reopen your terminal session or 'source ~/.zshrc' to reload the environment"
