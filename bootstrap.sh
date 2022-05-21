@@ -13,24 +13,24 @@ if ! command -v curl >/dev/null 2>&1; then
 fi
 
 # If .oh-my-zsh dir does not exist, install oh-my-zsh
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
+if [ ! -d "${HOME}/.oh-my-zsh" ]; then
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 fi
 
 # If zsh-autosuggestions is not installed, install it
-ZSH_AUTOSUGGESTIONS_DIR="$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+ZSH_AUTOSUGGESTIONS_DIR="${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
 if [ ! -d "${ZSH_AUTOSUGGESTIONS_DIR}" ]; then
     git clone --depth=1 "https://github.com/zsh-users/zsh-autosuggestions.git" "${ZSH_AUTOSUGGESTIONS_DIR}"
 fi
 
 # If zsh-syntax-highlighting is not installed, install it
-ZSH_SYNTAX_HIGHLIGHTING_DIR="$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+ZSH_SYNTAX_HIGHLIGHTING_DIR="${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
 if [ ! -d "${ZSH_SYNTAX_HIGHLIGHTING_DIR}" ]; then
     git clone --depth=1 "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${ZSH_SYNTAX_HIGHLIGHTING_DIR}"
 fi
 
 # If powerlevel10k is not installed, install it
-POWERLEVEL10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+POWERLEVEL10K_DIR="${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}/themes/powerlevel10k"
 if [ ! -d "${POWERLEVEL10K_DIR}" ]; then
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${POWERLEVEL10K_DIR}"
 fi
@@ -39,10 +39,12 @@ fi
 SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 cd "${SCRIPT_DIR}" || exit 1
 
-# Make sure SCRIPT_DIR is $HOME/dotfiles
-if [ "${PWD}" != "${HOME}/dotfiles" ]; then
+REPO_ROOT="${PWD}"
+
+# Make sure REPO_ROOT is ${HOME}/dotfiles
+if [ "${REPO_ROOT}" != "${HOME}/dotfiles" ]; then
     echo "The whole dotfiles repo must be cloned to ${HOME}/dotfiles" 1>&2
-    echo "Currently in ${PWD}" 1>&2
+    echo "Currently in ${REPO_ROOT}" 1>&2
     exit 1
 fi
 
@@ -76,17 +78,18 @@ function fix_executable_permissions() {
     chmod -x bin/custom/.gitkeep
 }
 
-# Link files
-ln -s ${FORCE} "${PWD}/.zshrc" ~/.zshrc || show_ln_fail_help
-ln -s ${FORCE} "${PWD}/.zshenv" ~/.zshenv || show_ln_fail_help
-ln -s ${FORCE} "${PWD}/.p10k.zsh" ~/.p10k.zsh || show_ln_fail_help
+# Link file
+ln -s ${FORCE} "${REPO_ROOT}/.zshrc" "${HOME}/.zshrc" || show_ln_fail_help
+ln -s ${FORCE} "${REPO_ROOT}/.zshenv" "${HOME}/.zshenv" || show_ln_fail_help
+ln -s ${FORCE} "${REPO_ROOT}/.p10k.zsh" "${HOME}/.p10k.zsh" || show_ln_fail_help
+ln -s ${FORCE} "${REPO_ROOT}/.Xmodmap" "${HOME}/.Xmodmap" || show_ln_fail_help
 
 # Add +x permissions to all executables
 fix_executable_permissions
 
 # Install crontabs
 # Install root crontab for darwin
-CRONFILE="$HOME/dotfiles/cron/${OS}/root.conf"
+CRONFILE="${HOME}/dotfiles/cron/${OS}/root.conf"
 if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ]; then
     sudo crontab "${CRONFILE}"
 fi
