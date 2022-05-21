@@ -13,7 +13,7 @@ PATH_BEFORE=(
 
 # This list is appended after PATH
 PATH_AFTER=(
-
+    /usr/local/go/bin
 )
 
 # Apply changes to PATH
