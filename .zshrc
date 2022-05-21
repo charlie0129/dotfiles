@@ -76,11 +76,8 @@ VI_MODE_RESET_PROMPT_ON_MODE_CHANGE=true
 # Load custom plugins
 source "$HOME/dotfiles/custom-omz-plugins.sh"
 
-# Which plugins would you like to load?
-# Standard plugins can be found in ~/.oh-my-zsh/plugins/*
-# Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
+# These are default plugins, to add you custom plugins (so that it won't be tracked by git)
+# add them in "$HOME/dotfiles/custom-omz-plugins.sh".
 default_plugins=(
     git
     zsh-autosuggestions
