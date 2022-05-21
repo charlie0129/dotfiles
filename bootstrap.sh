@@ -29,6 +29,12 @@ if [ ! -d "${ZSH_SYNTAX_HIGHLIGHTING_DIR}" ]; then
     git clone --depth=1 "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${ZSH_SYNTAX_HIGHLIGHTING_DIR}"
 fi
 
+# If powerlevel10k is not installed, install it
+POWERLEVEL10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+if [ ! -d "${POWERLEVEL10K_DIR}" ]; then
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${POWERLEVEL10K_DIR}"
+fi
+
 # cd into where this script lives
 SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 cd "${SCRIPT_DIR}" || exit 1
