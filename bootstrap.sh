@@ -8,7 +8,7 @@ fi
 
 # Curl must be installed
 if ! command -v curl >/dev/null 2>&1; then
-    echo "Curl is not installed" 1>&2
+    echo "curl is not installed" 1>&2
     exit 1
 fi
 
