@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+zfs get compressratio -H | grep -vE 'auto-snap|docker\/' | awk '{print $3, "\t", $1}'  | sort -r
