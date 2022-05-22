@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+zfs list -t snapshot | awk '{print $1}' | grep @zfs-auto | xargs -n 1 sudo zfs destroy
