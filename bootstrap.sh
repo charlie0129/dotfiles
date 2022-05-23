@@ -102,9 +102,9 @@ ln -s ${FORCE} "${REPO_ROOT}/.conf.vim" "${HOME}/.vim_runtime/my_configs.vim" ||
 fix_executable_permissions
 
 # Install crontabs
-# Install root crontab for darwin
+# Install root crontab for darwin/linux
 CRONFILE="${HOME}/dotfiles/cron/${OS}/root.conf"
-if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ]; then
+if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ] || [ "${OS}" = "linux" ]; then
     sudo crontab "${CRONFILE}"
 fi
 # Install crontabs complete
