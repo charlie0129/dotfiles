@@ -35,6 +35,18 @@ if [ ! -d "${POWERLEVEL10K_DIR}" ]; then
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${POWERLEVEL10K_DIR}"
 fi
 
+# If ~/.tmux dir does not exist, install oh-my-tmux
+if [ ! -d "${HOME}/.tmux" ]; then
+    git clone --depth=1 https://github.com/gpakosz/.tmux.git "${HOME}/.tmux"
+    ln -s -f "${HOME}/.tmux/.tmux.conf" "${HOME}/.tmux.conf"
+fi
+
+# If ~/.vim_runtime dir does not exist, install vimrc
+if [ ! -d "${HOME}/.vim_runtime" ]; then
+    git clone --depth=1 https://github.com/amix/vimrc.git "${HOME}/.vim_runtime"
+    sh "${HOME}/.vim_runtime/install_awesome_vimrc.sh"
+fi
+
 # cd into where this script lives
 SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 cd "${SCRIPT_DIR}" || exit 1
@@ -78,11 +90,13 @@ function fix_executable_permissions() {
     chmod -x bin/custom/.gitkeep
 }
 
-# Link file
+# Link files
 ln -s ${FORCE} "${REPO_ROOT}/.zshrc" "${HOME}/.zshrc" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.zshenv" "${HOME}/.zshenv" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.p10k.zsh" "${HOME}/.p10k.zsh" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.Xmodmap" "${HOME}/.Xmodmap" || show_ln_fail_help
+ln -s ${FORCE} "${REPO_ROOT}/.tmux.conf.local" "${HOME}/.tmux.conf.local" || show_ln_fail_help
+ln -s ${FORCE} "${REPO_ROOT}/.conf.vim" "${HOME}/.vim_runtime/my_configs.vim" || show_ln_fail_help
 
 # Add +x permissions to all executables
 fix_executable_permissions
