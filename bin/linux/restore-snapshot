@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+# Must have 2 arguments
+if [[ $# -ne 2 ]]; then
+  echo "Usage: restore-snapshot <dataset> <snapshot>"
+  exit 1
+fi
+
+DATASET_ROOT="$1"
+SNAPSHOT="$2"
+
+# collect list of datasets
+DATASETS=$(zfs list -r -t snapshot -o name $DATASET_ROOT | grep $SNAPSHOT)
+
+# if DATASETS length is 0, then exit error
+if [[ -z $DATASETS ]]; then
+  echo "No datasets found"
+  exit 1
+fi
+
+echo "We found the following datasets:"
+for i in ${DATASETS}; do echo "  ${i/@${SNAPSHOT}/}"; done
+
+echo -n "Do you want to restore these datasets? (y/n)"
+while true; do
+    read -r yn
+    case $yn in
+    [Yy]*)
+        break
+        ;;
+    [Nn]*) exit 0 ;;
+    *) echo "Please answer yes(Y/y) or no(N/n)." ;;
+    esac
+done
+
+for i in $DATASETS; do sudo zfs rollback -rR $i ; done

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+zfs list -rt snapshot -o name,creation $1
