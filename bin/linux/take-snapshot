@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+# Must have zfs
+if ! command -v zfs >/dev/null 2>&1; then
+  echo "zfs is not installed"
+  exit 1
+fi
+
+# Must have one argument
+if [[ $# -le 1 ]]; then
+  echo "Usage: take-snapshot <snapshot short desc> [dataset]"
+  exit 1
+fi
+
+SNAPSHOT_DESC="$1"
+# Description must not have spaces
+if [[ "${SNAPSHOT_DESC}" =~ \s ]]; then
+  echo "Snapshot description must not have spaces"
+  exit 1
+fi
+# Description must only contain alphanumeric characters, dash and underscore
+if [[ ! "${SNAPSHOT_DESC}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Snapshot description must only contain alphanumeric characters, dash and underscore"
+  exit 1
+fi
+
+TARGET_DATASET="${2:-rpool}"
+
+BACKUP_TIME=$(date +"%Y-%m-%d-%H%M%S")
+
+SNAPSHOT_NAME="manual_snap_${BACKUP_TIME}_${SNAPSHOT_DESC}"
+
+echo "Creating snapshot ${SNAPSHOT_NAME} on ${TARGET_DATASET}"
+
+sudo zfs snapshot -r "${TARGET_DATASET}@${SNAPSHOT_NAME}"
+
+exit $?
