@@ -15,9 +15,6 @@ alias unsetproxy="unset http_proxy; unset https_proxy;"
 alias git_setproxy="git config --global http.proxy http://127.0.0.1:1087; git config --global https.proxy http://127.0.0.1:1087;"
 alias git_unsetproxy="git config --global --unset http.proxy; git config --global --unset https.proxy;"
 
-# Delete .DS_Store recursively
-alias rm_dsstore="find . -name '.DS_Store' -type f -delete"
-
 # Get a shell inside Docker Desktop Linuxkit VM
 alias nsenter="docker run -it --rm --privileged --pid=host justincormack/nsenter1 /bin/bash"
 
