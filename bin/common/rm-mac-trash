@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+TARGET_DIR="."
+
+# if first argument is not empty
+if [[ -n "$1" ]]; then
+    TARGET_DIR="$1"
+fi
+
+FILES=$(find "${TARGET_DIR}" -regextype egrep -regex '.*(\.DS_Store|\._).*'  -type f -print)
+
+if [[ -z $FILES ]]; then
+  echo "No Mac trash files found. You are clean."
+  exit 0
+fi
+
+echo "These files will be deleted:"
+
+echo "$FILES"
+
+# count lines in FILES
+COUNT=$(echo "$FILES" | wc -l)
+
+echo -n "Are you sure you want to delete these ${COUNT} file(s)? (y/n)"
+while true; do
+    read -r yn
+    case $yn in
+    [Yy]*)
+        break
+        ;;
+    [Nn]*) exit 0 ;;
+    *) echo "Please answer yes(Y/y) or no(N/n)." ;;
+    esac
+done
+
+find "${TARGET_DIR}" -regextype egrep -regex '.*(\.DS_Store|\._).*'  -type f -delete
