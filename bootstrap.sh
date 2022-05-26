@@ -97,6 +97,7 @@ ln -s ${FORCE} "${REPO_ROOT}/.p10k.zsh" "${HOME}/.p10k.zsh" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.Xmodmap" "${HOME}/.Xmodmap" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.tmux.conf.local" "${HOME}/.tmux.conf.local" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.conf.vim" "${HOME}/.vim_runtime/my_configs.vim" || show_ln_fail_help
+ln -s ${FORCE} "${REPO_ROOT}/.ideavimrc" "${HOME}/.ideavimrc" || show_ln_fail_help
 
 # Add +x permissions to all executables
 fix_executable_permissions
