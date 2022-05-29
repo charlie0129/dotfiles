@@ -25,6 +25,7 @@ set keep-english-in-normal
 nmap ge <action>(GotoNextError)
 nmap gt <action>(GotoTest)
 nmap gm <action>(MethodUp)
+nmap gd <action>(GotoDeclaration)
 " last changed in current buffer(file)
 nmap ga '.
 
