@@ -9,20 +9,38 @@ config_files=$(ls ~/.kube/ | grep "config-" | sed "s/config-//")
 
 # should only have 1 parameter
 if [[ $# -ne 1 ]]; then
-    echo "usage: k-switch <config>" >&2
-    echo "available config: " >&2
-    echo "${config_files}" >&2
+    echo "Usage: k-switch <config>" >&2
+    echo "Available configs: " >&2
+    # Loop through the config files and print them out
+    for config in ${config_files}; do
+        echo -e "- \033[32m${config}\033[0m" >&2
+    done
     exit 1
 fi
 
-# check if the parameter is in the list
-if [[ ! ${config_files} =~ ${1} ]]; then
-    echo "invalid config: ${1}" >&2
-    echo "available config: " >&2
-    echo "${config_files}" >&2
-    exit 1
+# check if config exists
+if [[ ! -f "${HOME}/.kube/config-$1" ]]; then
+    echo -e "Cannot find config: \033[31;1m${1}\033[0m" >&2
+    echo "Available configs: " >&2
+    # Loop through the config files and print them out
+    for config in ${config_files}; do
+        echo -e "- \033[32m${config}\033[0m" >&2
+    done
+    echo -en "Create empty config \033[1m$1\033[0m and switch to it? [y/n]?"
+    while true; do
+        read -r yn
+        case $yn in
+        [Yy]*)
+            break
+            ;;
+        [Nn]*) exit 1 ;;
+        *) echo "Please answer yes(Y/y) or no(N/n)." ;;
+        esac
+    done
+    touch "${HOME}/.kube/config-$1"
+    chmod 644 "${HOME}/.kube/config-$1"
 fi
 
 # switch to the config file
 export KUBECONFIG=~/.kube/config
-ln -f "${HOME}/.kube/config-${1}" "${HOME}/.kube/config"
+ln -sf "${HOME}/.kube/config-$1" "${HOME}/.kube/config"
