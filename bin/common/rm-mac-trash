@@ -7,7 +7,7 @@ if [[ -n "$1" ]]; then
     TARGET_DIR="$1"
 fi
 
-FILES=$(find "${TARGET_DIR}" -regextype egrep -regex '.*(\.DS_Store|\._).*'  -type f -print)
+FILES=$(find "${TARGET_DIR}" -regextype egrep -regex '.*\/(\.DS_Store|\._).*'  -type f -print)
 
 if [[ -z $FILES ]]; then
   echo "No Mac trash files found. You are clean."
@@ -33,4 +33,4 @@ while true; do
     esac
 done
 
-find "${TARGET_DIR}" -regextype egrep -regex '.*(\.DS_Store|\._).*'  -type f -delete
+find "${TARGET_DIR}" -regextype egrep -regex '.*\/(\.DS_Store|\._).*'  -type f -delete
