@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
 # Switched between Kubernetes configs
+# I know I can use env variables KUBECONFIG to change configs, 
+# but I want to control which config is used no matter the env is set or not
 
 # list all files in ~/.kube/ starts with "config-", and remove "config-"
 config_files=$(ls ~/.kube/ | grep "config-" | sed "s/config-//")
+
 # should only have 1 parameter
 if [[ $# -ne 1 ]]; then
     echo "usage: k-switch <config>" >&2
@@ -11,6 +14,7 @@ if [[ $# -ne 1 ]]; then
     echo "${config_files}" >&2
     exit 1
 fi
+
 # check if the parameter is in the list
 if [[ ! ${config_files} =~ ${1} ]]; then
     echo "invalid config: ${1}" >&2
@@ -18,6 +22,7 @@ if [[ ! ${config_files} =~ ${1} ]]; then
     echo "${config_files}" >&2
     exit 1
 fi
+
 # switch to the config file
 export KUBECONFIG=~/.kube/config
-cp ~/.kube/config-${1} ~/.kube/config
+ln -f "${HOME}/.kube/config-${1}" "${HOME}/.kube/config"
