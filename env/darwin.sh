@@ -7,8 +7,6 @@ PATH_BEFORE=(
     /usr/local/sbin
     # bin in this repo
     $HOME/dotfiles/bin/darwin
-    # Homebrew installed coreutils
-    /usr/local/opt/coreutils/libexec/gnubin
     # Homebrew installed OpenJDK
     /usr/local/opt/openjdk/bin
 )
