@@ -18,6 +18,3 @@ alias k="kubectl"
 # Short for helm
 alias h="helm"
 
-# Require confirmation before rm. This requires a newer version of rm.
-# You need `brew install coreutils` on macOS. Linux is included by default.
-alias rm="rm -I"

@@ -21,3 +21,7 @@ alias nsenter="docker run -it --rm --privileged --pid=host justincormack/nsenter
 # Load or Unload Zerotier background service
 alias loadzerotier="sudo launchctl load /Library/LaunchDaemons/com.zerotier.one.plist"
 alias unloadzerotier="sudo launchctl unload /Library/LaunchDaemons/com.zerotier.one.plist"
+
+# Require confirmation before rm. This requires a newer version of rm.
+# You need `brew install coreutils` on macOS. Linux is included by default.
+alias rm="grm -I"

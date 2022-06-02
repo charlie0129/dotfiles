@@ -109,12 +109,8 @@ export EDITOR="vim"
 # Source env definitions in this dotfiles repo
 # Note that what sourced first will actually have lower priority in PATH due to how it works
 # OS specific definitions
-if [ -f "$HOME/dotfiles/env/darwin.sh" ] && [ "${OS}" = "darwin" ]; then
-    source "$HOME/dotfiles/env/darwin.sh"
-fi
-# OS specific definitions
-if [ -f "$HOME/dotfiles/env/linux.sh" ] && [ "${OS}" = "linux" ]; then
-    source "$HOME/dotfiles/env/linux.sh"
+if [ -f "$HOME/dotfiles/env/${OS}.sh" ]; then
+    source "$HOME/dotfiles/env/${OS}.sh"
 fi
 # Load common definitions
 if [ -f "$HOME/dotfiles/env/common.sh" ]; then
@@ -127,15 +123,16 @@ fi
 # Source complete
 
 # Source alias in this dotfiles repo
-# Custom alias always loads first
-if [ -f "$HOME/dotfiles/alias/custom.sh" ]; then
-    source "$HOME/dotfiles/alias/custom.sh"
+# OS specific alias
+if [ -f "$HOME/dotfiles/alias/${OS}.sh" ]; then
+    source "$HOME/dotfiles/alias/${OS}.sh"
 fi
 # Load common alias
 if [ -f "$HOME/dotfiles/alias/common.sh" ]; then
     source "$HOME/dotfiles/alias/common.sh"
 fi
-# OS specific alias
-if [ -f "$HOME/dotfiles/alias/darwin.sh" ] && [ "${OS}" = "darwin" ]; then
-    source "$HOME/dotfiles/alias/darwin.sh"
+# Custom alias always have higher priority
+if [ -f "$HOME/dotfiles/alias/custom.sh" ]; then
+    source "$HOME/dotfiles/alias/custom.sh"
 fi
+
