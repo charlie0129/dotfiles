@@ -4,12 +4,23 @@ TARGET_DIR="."
 REGEX='.*\/(\.DS_Store|\._).*'
 GREP_REGEX='\/(\.DS_Store|\._)'
 
+FIND="find"
+# Use gfind if GNU find is available (Mac OS X)
+if gfind --version >/dev/null 2>&1; then
+    FIND="gfind"
+fi
+
 # if first argument is not empty
 if [[ -n "$1" ]]; then
     TARGET_DIR="$1"
 fi
 
-FILES=$(find "${TARGET_DIR}" -regextype egrep -regex ${REGEX}  -type f -print)
+FILES=$(${FIND} "${TARGET_DIR}" -regextype egrep -regex ${REGEX}  -type f -print)
+
+if [ $? -ne 0 ]; then
+    echo "find failed. If you are using macOS, make sure you installed GNU find (brew install findutils)."
+    exit 1
+fi
 
 if [[ -z $FILES ]]; then
   echo "No Mac trash files found. You are clean."
@@ -35,4 +46,4 @@ while true; do
     esac
 done
 
-find "${TARGET_DIR}" -regextype egrep -regex ${REGEX}  -type f -delete
+${FIND} "${TARGET_DIR}" -regextype egrep -regex ${REGEX}  -type f -delete
