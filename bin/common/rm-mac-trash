@@ -18,7 +18,8 @@ fi
 FILES=$(${FIND} "${TARGET_DIR}" -regextype egrep -regex ${REGEX}  -type f -print)
 
 if [ $? -ne 0 ]; then
-    echo "find failed. If you are using macOS, make sure you installed GNU find (brew install findutils)."
+    echo "find failed." 1>&2
+    echo "If you are using macOS and seeing -regextype errors, make sure you installed GNU find (brew install findutils)." 1>&2
     exit 1
 fi
 
