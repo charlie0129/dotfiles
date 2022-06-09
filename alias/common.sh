@@ -14,6 +14,16 @@ alias comp="docker-compose"
 
 # Short for kubectl
 alias k="kubectl"
+alias kgp="kubectl get pods"
+alias kgd="kubectl get deployments"
+
+# short for vela
+alias v="vela"
+alias va="vela addon"
+alias vae="vela addon enable"
+alias vad="vela addon disable"
+alias val="vela addon list"
+alias vap="vela addon package"
 
 # Short for helm
 alias h="helm"
