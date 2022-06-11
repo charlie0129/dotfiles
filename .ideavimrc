@@ -9,7 +9,7 @@ Plug 'preservim/nerdtree'
 " ================================================================================================
 set clipboard+=unnamed
 set ignorecase
-set scrolloff=30
+set scrolloff=10
 set history=200
 
 set number
@@ -26,11 +26,12 @@ nmap ge <action>(GotoNextError)
 nmap gt <action>(GotoTest)
 nmap gm <action>(MethodUp)
 nmap gd <action>(GotoDeclaration)
+nmap gb <action>(Back)
 " last changed in current buffer(file)
 nmap ga '.
 
 " paste之后不会把yank的内容替换掉
-vmap p "_dp
+vmap p _dp
 
 " bookmark in whole program
 nmap ma mA
