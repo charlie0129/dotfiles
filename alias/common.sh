@@ -24,6 +24,8 @@ alias vae="vela addon enable"
 alias vad="vela addon disable"
 alias val="vela addon list"
 alias vap="vela addon package"
+alias vd="vela def"
+alias vdl="vela def list"
 
 # Short for helm
 alias h="helm"

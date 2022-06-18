@@ -27,6 +27,8 @@ nmap gt <action>(GotoTest)
 nmap gm <action>(MethodUp)
 nmap gd <action>(GotoDeclaration)
 nmap gb <action>(Back)
+nmap gc <action>(CommentByLineComment)
+nmap gi <action>(GotoImplementation)
 " last changed in current buffer(file)
 nmap ga '.
 
