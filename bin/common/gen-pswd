@@ -1,23 +1,47 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import os
+import argparse
 
-# TODO: use command line arguments to customize these
-TOTAL_LENGTH=25
-SEGMENT_LENGTH=5
-SEPARATOR="-"
+parser = argparse.ArgumentParser()
+parser.add_argument("-n",
+                    "--number",
+                    nargs="?",
+                    type=int,
+                    default=1,
+                    help="number of passwords to generate (default 1)")
+parser.add_argument("-s",
+                    "--segments",
+                    nargs="?",
+                    type=int,
+                    default=5,
+                    help="number of segments in the password (default 5)")
+parser.add_argument("-l",
+                    "--segment-length",
+                    nargs="?",
+                    type=int,
+                    default=5,
+                    help="length of segments (default 5)")
+parser.add_argument("-p",
+                    "--separator",
+                    nargs="?",
+                    default="-",
+                    help="segment separator (default '-')")
+args = parser.parse_args()
 
-segments=int(TOTAL_LENGTH/SEGMENT_LENGTH)
+for t in range(args.number):
+    final_string = ''
+    for i in range(args.segments):
+        for j in range(args.segment_length):
+            while True:
+                b = os.urandom(1)[0]
+                # a-z A-Z 0-9
+                if ord('a') <= int(b) <= ord('z') \
+                        or ord('A') <= int(b) <= ord('Z') \
+                        or ord('0') <= int(b) <= ord('9'):
+                    final_string += chr(b)
+                    break
+        final_string += (args.separator if i != args.segments - 1 else '')
+    print(final_string)
 
-final_string=""
-
-for i in range(segments):
-    for j in range(SEGMENT_LENGTH):
-        while True:
-            b = os.urandom(1)[0]
-            if ord("a") <= int(b) <= ord("z") or ord("A") <= int(b) <= ord("Z") or ord("0") <= int(b) <= ord("9") :
-                final_string += chr(b)
-                break
-    final_string+="-" if i != segments - 1 else ""
-
-print(final_string)
