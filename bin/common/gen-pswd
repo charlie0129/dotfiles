@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+import os
+
+# TODO: use command line arguments to customize these
+TOTAL_LENGTH=25
+SEGMENT_LENGTH=5
+SEPARATOR="-"
+
+segments=int(TOTAL_LENGTH/SEGMENT_LENGTH)
+
+final_string=""
+
+for i in range(segments):
+    for j in range(SEGMENT_LENGTH):
+        while True:
+            b = os.urandom(1)[0]
+            if ord("a") <= int(b) <= ord("z") or ord("A") <= int(b) <= ord("Z"):
+                final_string += chr(b)
+                break
+    final_string+="-" if i != segments - 1 else ""
+
+print(final_string)
