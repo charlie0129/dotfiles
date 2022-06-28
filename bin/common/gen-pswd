@@ -15,7 +15,7 @@ for i in range(segments):
     for j in range(SEGMENT_LENGTH):
         while True:
             b = os.urandom(1)[0]
-            if ord("a") <= int(b) <= ord("z") or ord("A") <= int(b) <= ord("Z"):
+            if ord("a") <= int(b) <= ord("z") or ord("A") <= int(b) <= ord("Z") or ord("0") <= int(b) <= ord("9") :
                 final_string += chr(b)
                 break
     final_string+="-" if i != segments - 1 else ""
