@@ -28,7 +28,32 @@ parser.add_argument("-p",
                     nargs="?",
                     default="-",
                     help="segment separator (default '-')")
+parser.add_argument("-a",
+                    "--all-printable-characters",
+                    dest="all_printable_char",
+                    default=False,
+                    action="store_true",
+                    help="use all printable characters")
 args = parser.parse_args()
+
+
+def is_num_or_char(b):
+    return ord('a') <= int(b) <= ord('z') \
+        or ord('A') <= int(b) <= ord('Z') \
+        or ord('0') <= int(b) <= ord('9')
+
+
+def is_printable_char(b):
+    return 33 <= int(b) <= 126 and \
+        int(b) != ord(args.separator[0])
+
+
+def is_kept(b):
+    if args.all_printable_char:
+        return is_printable_char(b)
+    else:
+        return is_num_or_char(b)
+
 
 for t in range(args.number):
     final_string = ''
@@ -36,12 +61,8 @@ for t in range(args.number):
         for j in range(args.segment_length):
             while True:
                 b = os.urandom(1)[0]
-                # a-z A-Z 0-9
-                if ord('a') <= int(b) <= ord('z') \
-                        or ord('A') <= int(b) <= ord('Z') \
-                        or ord('0') <= int(b) <= ord('9'):
+                if is_kept(b):
                     final_string += chr(b)
                     break
         final_string += (args.separator if i != args.segments - 1 else '')
     print(final_string)
-
