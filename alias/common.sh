@@ -6,6 +6,9 @@ alias htop='sudo htop'
 # Shallow git clone
 alias gcl1='git clone --depth=1'
 
+# Quick update dotfiles
+alias update-dotfiles='git -C ${HOME}/dotfiles pull'
+
 # cloc with common non-relevant dirs excluded
 alias cloc1="cloc --exclude-dir=node_modules,.idea,.mvn,.git --exclude-ext=.log,.lock,.tsbuildinfo"
 
@@ -20,6 +23,7 @@ alias comp="docker-compose"
 alias k="kubectl"
 alias kgp="kubectl get pods"
 alias kgd="kubectl get deployments"
+alias kgno"kubectl get nodes"
 
 # short for vela
 alias v="vela"
