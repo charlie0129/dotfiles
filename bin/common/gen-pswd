@@ -45,7 +45,7 @@ def is_num_or_char(b):
 
 def is_printable_char(b):
     return 33 <= int(b) <= 126 and \
-        int(b) != ord(args.separator[0])
+        (args.segments == 1 or int(b) != ord(args.separator[0]))
 
 
 def is_kept(b):
