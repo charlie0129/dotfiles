@@ -29,18 +29,13 @@
 import argparse
 from sys import stdin, stdout
 
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--multiline', dest="multiline", nargs='?', type=str2bool, const=True, default=False, help="break escaped string into multiple lines")
+parser.add_argument('-m',
+                    '--multiline',
+                    default=False,
+                    action='store_true',
+                    help="break escaped string into multiple lines")
 args = parser.parse_args()
 
 input = stdin.read()

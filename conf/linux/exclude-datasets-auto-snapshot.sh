@@ -3,6 +3,7 @@
 EXCLUDE_PATTERNS=(
     "/var/log"
     "/var/lib/docker"
+    "/var/lib/libvirt"
 )
 
 EXCLUDE_REGEXP=""
