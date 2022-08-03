@@ -32,9 +32,10 @@ from sys import stdin, stdout
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m',
-                    '--multiline',
-                    default=False,
-                    action='store_true',
+                    '--no-multiline',
+                    dest="multiline",
+                    default=True,
+                    action='store_false',
                     help="break escaped string into multiple lines")
 args = parser.parse_args()
 
