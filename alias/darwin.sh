@@ -25,3 +25,5 @@ alias unloadzerotier="sudo launchctl unload /Library/LaunchDaemons/com.zerotier.
 # Require confirmation before rm. This requires a newer version of rm.
 # You need `brew install coreutils` on macOS. Linux is included by default.
 alias rm="grm -I"
+
+alias pc="proxychains4"

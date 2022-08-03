@@ -22,3 +22,6 @@ export PATH
 
 # GPG
 export GPG_TTY=$(tty)
+
+# Go proxy in China
+export GOPROXY=https://goproxy.cn

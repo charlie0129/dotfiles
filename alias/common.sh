@@ -38,3 +38,5 @@ alias vdl="vela def list"
 # Short for helm
 alias h="helm"
 
+# Common mistakes
+alias code.="code ."
