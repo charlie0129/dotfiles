@@ -13,5 +13,9 @@ elif [[ $1 == "xcode" ]]; then
     sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 else
     echo "invalid option! available options: cli, xcode" >&2
+    CURRENT=$(xcode-select -p)
+    echo "Currently using: $CURRENT"
+    CURRENTSDK=$(xcrun --show-sdk-path)
+    echo "                 $CURRENTSDK"
     exit 1
 fi
