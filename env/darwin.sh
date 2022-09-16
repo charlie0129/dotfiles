@@ -9,6 +9,7 @@ PATH_BEFORE=(
     $HOME/dotfiles/bin/darwin
     # Homebrew installed OpenJDK
     /usr/local/opt/openjdk/bin
+    /usr/local/opt/curl/bin
 )
 
 # This list is appended after PATH

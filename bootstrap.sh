@@ -47,6 +47,11 @@ if [ ! -d "${HOME}/.vim_runtime" ]; then
     sh "${HOME}/.vim_runtime/install_awesome_vimrc.sh"
 fi
 
+# Configure neovim using NvChad
+if [ ! -d "${HOME}/.config/nvim" ]; then
+    git clone --depth=1 https://github.com/NvChad/NvChad.git "${HOME}/.config/nvim"
+fi
+
 # cd into where this script lives
 SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 cd "${SCRIPT_DIR}" || exit 1
@@ -98,6 +103,8 @@ ln -s ${FORCE} "${REPO_ROOT}/.Xmodmap" "${HOME}/.Xmodmap" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.tmux.conf.local" "${HOME}/.tmux.conf.local" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.conf.vim" "${HOME}/.vim_runtime/my_configs.vim" || show_ln_fail_help
 ln -s ${FORCE} "${REPO_ROOT}/.ideavimrc" "${HOME}/.ideavimrc" || show_ln_fail_help
+rm -rf "${HOME}/.config/nvim/lua/custom"
+ln -s ${FORCE} "${REPO_ROOT}/nvim" "${HOME}/.config/nvim/lua/custom" || show_ln_fail_help
 
 # Add +x permissions to all executables
 fix_executable_permissions
