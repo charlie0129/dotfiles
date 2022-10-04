@@ -24,7 +24,7 @@ parser.add_argument("-s",
                     "--segments",
                     nargs="?",
                     type=check_positive,
-                    default=5,
+                    default=2,
                     help="number of segments in the password (default 5)")
 parser.add_argument("-l",
                     "--segment-length",
