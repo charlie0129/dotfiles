@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# du2 = run du with actual size and apparent size
+
+IFS=$'\n'
+
+if [[ $# -ne 0 ]]; then
+  # User has passed other arguments
+  DU_ACTUAL="$(du "$@")"
+  DU_APPARENT="$(du --apparent-size "$@")"
+else
+  # No arguments provided by the user
+  # provide some default args to du
+  DU_ACTUAL="$(du -d 1 -h .)"
+  DU_APPARENT="$(du --apparent-size -d 1 -h .)"
+  printf "%-25s%-15s%-15s\n" DIRECTORY SIZE "SIZE ON DISK"
+fi
+
+ACTUAL_SIZE=($(echo "$DU_ACTUAL" | awk '{ print $1 }'))
+APPARENT_SIZE=($(echo "$DU_APPARENT" | awk '{ print $1 }'))
+FILENAME=($(echo "$DU_APPARENT" | awk '{ print $2 }'))
+
+for i in "${!ACTUAL_SIZE[@]}"; do
+  printf "%-25s%-15s%-15s\n" "${FILENAME[$i]}" "${APPARENT_SIZE[$i]}" "${ACTUAL_SIZE[$i]}"
+done
