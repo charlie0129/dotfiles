@@ -33,7 +33,7 @@ nmap gi <action>(GotoImplementation)
 nmap ga '.
 
 " paste之后不会把yank的内容替换掉
-vmap p _dp
+" vmap p _dp
 
 " bookmark in whole program
 nmap ma mA
