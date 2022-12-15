@@ -1,0 +1,20 @@
+# oh-my-zsh
+ohmyzsh:$HOME/.oh-my-zsh
+
+# zsh-autosuggestions
+zsh-autosuggestions:$REPO_ROOT/dep/ohmyzsh/custom/plugins/zsh-autosuggestions
+
+# zsh-syntax-highlighting
+zsh-syntax-highlighting:$REPO_ROOT/dep/ohmyzsh/custom/plugins/zsh-syntax-highlighting
+
+# powerlevel10k
+powerlevel10k:$REPO_ROOT/dep/ohmyzsh/custom/themes/powerlevel10k
+
+# oh-my-tmux
+ohmytmux:$HOME/.tmux
+
+# awesome-vimrc
+awesome-vimrc:$HOME/.vim_runtime
+
+# NvChad
+nvchad:$HOME/.config/nvim

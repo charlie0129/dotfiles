@@ -1,0 +1,24 @@
+# zshrc
+.zshrc:$HOME/.zshrc
+
+# environment variables
+.zshenv:$HOME/.zshenv
+
+# powerlevel10k config
+.p10k.zsh:$HOME/.p10k.zsh
+
+# xmodmap config
+.Xmodmap:$HOME/.Xmodmap
+
+# tmux config
+.tmux.conf.local:$HOME/.tmux.conf.local
+
+# vim config
+.vimrc.local:$REPO_ROOT/dep/awesome-vimrc/my_configs.vim
+.vimrc:$HOME/.vimrc
+
+# ideavim config
+.ideavimrc:$HOME/.ideavimrc
+
+# neovim config
+nvim:$REPO_ROOT/dep/nvchad/lua/custom

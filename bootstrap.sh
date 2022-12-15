@@ -1,55 +1,11 @@
 #!/usr/bin/env bash
 
-# Git must be installed
-if ! command -v git >/dev/null 2>&1; then
-    echo "Git is not installed" 1>&2
+# Make sure bash version is at least 4.0
+BASH_VERSION_MAJOR=$(echo "${BASH_VERSION}" | cut -d. -f1)
+if [ "${BASH_VERSION_MAJOR}" -lt 4 ]; then
+    echo "Bash version must be at least 4.0, but you are running ${BASH_VERSION}." 1>&2
+    echo "This error typically occurs on macOS. You can install a newer bash using Homebrew." 1>&2
     exit 1
-fi
-
-# Curl must be installed
-if ! command -v curl >/dev/null 2>&1; then
-    echo "curl is not installed" 1>&2
-    exit 1
-fi
-
-# If .oh-my-zsh dir does not exist, install oh-my-zsh
-if [ ! -d "${HOME}/.oh-my-zsh" ]; then
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-fi
-
-# If zsh-autosuggestions is not installed, install it
-ZSH_AUTOSUGGESTIONS_DIR="${HOME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
-if [ ! -d "${ZSH_AUTOSUGGESTIONS_DIR}" ]; then
-    git clone --depth=1 "https://github.com/zsh-users/zsh-autosuggestions.git" "${ZSH_AUTOSUGGESTIONS_DIR}"
-fi
-
-# If zsh-syntax-highlighting is not installed, install it
-ZSH_SYNTAX_HIGHLIGHTING_DIR="${HOME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
-if [ ! -d "${ZSH_SYNTAX_HIGHLIGHTING_DIR}" ]; then
-    git clone --depth=1 "https://github.com/zsh-users/zsh-syntax-highlighting.git" "${ZSH_SYNTAX_HIGHLIGHTING_DIR}"
-fi
-
-# If powerlevel10k is not installed, install it
-POWERLEVEL10K_DIR="${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}/themes/powerlevel10k"
-if [ ! -d "${POWERLEVEL10K_DIR}" ]; then
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${POWERLEVEL10K_DIR}"
-fi
-
-# If ~/.tmux dir does not exist, install oh-my-tmux
-if [ ! -d "${HOME}/.tmux" ]; then
-    git clone --depth=1 https://github.com/gpakosz/.tmux.git "${HOME}/.tmux"
-    ln -s -f "${HOME}/.tmux/.tmux.conf" "${HOME}/.tmux.conf"
-fi
-
-# If ~/.vim_runtime dir does not exist, install vimrc
-if [ ! -d "${HOME}/.vim_runtime" ]; then
-    git clone --depth=1 https://github.com/amix/vimrc.git "${HOME}/.vim_runtime"
-    sh "${HOME}/.vim_runtime/install_awesome_vimrc.sh"
-fi
-
-# Configure neovim using NvChad
-if [ ! -d "${HOME}/.config/nvim" ]; then
-    git clone --depth=1 https://github.com/NvChad/NvChad.git "${HOME}/.config/nvim"
 fi
 
 # cd into where this script lives
@@ -73,7 +29,7 @@ while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
     -f | --force)
-        FORCE=-f
+        FORCE=y
         shift
         ;;
     *)
@@ -84,10 +40,57 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-function show_ln_fail_help() {
-    echo -e "Linking failed!" 1>&2
-    echo -e "If you want to overwrite them, use the -f flag." 1>&2
-    exit 1
+function link_files() {
+    # Read `.pathmapping file' into array line by line
+    IFS=$'\n' read -d "" -ra file_data <".pathmapping"
+
+    for element in "${file_data[@]}"; do
+        # Ignore comments
+        if [[ $element == \#* ]]; then
+            continue
+        fi
+
+        # Split string by colon
+        IFS=':' read -ra splitted <<<"$element"
+        # Make sure splitted has 2 elements
+        if [ ${#splitted[@]} -ne 2 ]; then
+            echo "Invalid line: $element"
+            continue
+        fi
+
+        # Get source and destination
+        src="$PWD/$(eval echo ${splitted[0]})"
+        dst="$(eval echo ${splitted[1]})"
+
+        printf "Linking '%s' to '%s'" "$src" "$dst"
+        # If dst already exists. -e does not cover all cases (when symlink is not valid)
+        # so we also check if it's a symlink
+        if [[ -e "$dst" || -L "$dst" ]]; then
+            # If it's a symlink
+            if [ -L "$dst" ]; then
+                # If it's a symlink to src
+                if [ "$(readlink "$dst")" == "$src" ]; then
+                    printf "%s\n" " - already linked"
+                    continue
+                fi
+            fi
+
+            # If it's not a symlink, or it's a symlink to something else
+            if [ "$FORCE" == "y" ]; then
+                printf "%s" " - overwriting"
+                rm -rf "$dst"
+            else
+                printf "%s\n" " - skipped (file already exists, use -f to overwrite)"
+                continue
+            fi
+        fi
+        printf "..."
+        # Make sure parent directory exists
+        mkdir -p "$(dirname "$dst")"
+        # Create symlink
+        ln -s "$src" "$dst"
+        printf "\n"
+    done
 }
 
 function fix_executable_permissions() {
@@ -95,27 +98,26 @@ function fix_executable_permissions() {
     chmod -x bin/custom/.gitkeep
 }
 
+# Link dependencies
+cd dep && link_files && cd "$OLDPWD"
 # Link files
-ln -s ${FORCE} "${REPO_ROOT}/.zshrc" "${HOME}/.zshrc" || show_ln_fail_help
-ln -s ${FORCE} "${REPO_ROOT}/.zshenv" "${HOME}/.zshenv" || show_ln_fail_help
-ln -s ${FORCE} "${REPO_ROOT}/.p10k.zsh" "${HOME}/.p10k.zsh" || show_ln_fail_help
-ln -s ${FORCE} "${REPO_ROOT}/.Xmodmap" "${HOME}/.Xmodmap" || show_ln_fail_help
-ln -s ${FORCE} "${REPO_ROOT}/.tmux.conf.local" "${HOME}/.tmux.conf.local" || show_ln_fail_help
-ln -s ${FORCE} "${REPO_ROOT}/.conf.vim" "${HOME}/.vim_runtime/my_configs.vim" || show_ln_fail_help
-ln -s ${FORCE} "${REPO_ROOT}/.ideavimrc" "${HOME}/.ideavimrc" || show_ln_fail_help
-rm -rf "${HOME}/.config/nvim/lua/custom"
-ln -s ${FORCE} "${REPO_ROOT}/nvim" "${HOME}/.config/nvim/lua/custom" || show_ln_fail_help
+cd $REPO_ROOT && link_files && cd "$OLDPWD"
 
 # Add +x permissions to all executables
 fix_executable_permissions
 
 # Install crontabs
-# Install root crontab for darwin/linux
-CRONFILE="${HOME}/dotfiles/cron/${OS}/root.conf"
-if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ] || [ "${OS}" = "linux" ]; then
-    sudo crontab "${CRONFILE}"
+if command -v cron >/dev/null 2>&1; then
+    # Install *root* crontab for darwin/linux
+    CRONFILE="${HOME}/dotfiles/cron/${OS}/root.conf"
+    if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ] || [ "${OS}" = "linux" ]; then
+        if [ "$EUID" -ne 0 ]; then
+            sudo crontab "${CRONFILE}"
+        else
+            crontab "${CRONFILE}"
+        fi
+    fi
 fi
-# Install crontabs complete
 
 # Do not track custom configs
 CUSTOM_CONFIGS=(
@@ -123,7 +125,14 @@ CUSTOM_CONFIGS=(
     env/custom.sh
     custom-omz-plugins.sh
 )
-git update-index --skip-worktree "${CUSTOM_CONFIGS[@]}"
+# If git is installed, skip tracking custom configs
+if command -v git >/dev/null 2>&1; then
+    git update-index --skip-worktree "${CUSTOM_CONFIGS[@]}"
+fi
+
+if [ "${SHELL}" != "/bin/zsh" ]; then
+    echo "Your default shell is not zsh. Use 'chsh -s /bin/zsh' to change it."
+fi
 
 echo "Bootstrap complete!"
-echo "Run reopen your terminal session or 'source ~/.zshrc' to reload the environment"
+echo "Run 'source ~/.zshrc' for the changes to take effect."

@@ -12,7 +12,6 @@ cd "${SCRIPT_DIR}" || exit 1
 cp "restore.sh" "${BACKUP_STORE}"
 
 BACKUP_DIRS=(
-    ".oh-my-zsh"
     "dotfiles"
 )
 
