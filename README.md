@@ -38,6 +38,5 @@ You can put custom commands and bin in `alias/custom.sh`, `bin/custom/`, and `en
 - `conf`: system configurations
 - `cron`: cron jobs
 - `env`: environment variables, like PATH
-- `font`: fonts
 
-Note: `conf` and `fonts` will not be installed during bootstrap.
+Note: `conf` will not be installed during bootstrap.
