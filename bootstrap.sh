@@ -94,8 +94,7 @@ function link_files() {
 }
 
 function fix_executable_permissions() {
-    find bin -exec chmod +x {} \;
-    chmod -x bin/custom/.gitkeep
+    find bin -type f -not -name '*.md' -not -name '.gitkeep' -exec chmod +x {} \;
 }
 
 # Link dependencies
