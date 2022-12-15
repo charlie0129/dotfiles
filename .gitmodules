@@ -14,7 +14,7 @@
 	path = dep/ohmytmux
 	url = ../../gpakosz/.tmux.git
 [submodule "dep/awesome-vimrc"]
-	path = dep/awesome_vimrc
+	path = dep/awesome-vimrc
 	url = ../../amix/vimrc.git
 [submodule "dep/nvchad"]
 	path = dep/nvchad
