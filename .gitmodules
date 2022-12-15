@@ -1,21 +1,28 @@
 [submodule "dep/ohmyzsh"]
 	path = dep/ohmyzsh
 	url = ../../ohmyzsh/ohmyzsh.git
+	shallow = true
 [submodule "dep/zsh-autosuggestions"]
 	path = dep/zsh-autosuggestions
 	url = ../../zsh-users/zsh-autosuggestions.git
+	shallow = true
 [submodule "dep/zsh-syntax-highlighting"]
 	path = dep/zsh-syntax-highlighting
 	url = ../../zsh-users/zsh-syntax-highlighting.git
+	shallow = true
 [submodule "dep/powerlevel10k"]
 	path = dep/powerlevel10k
 	url = ../../romkatv/powerlevel10k.git
+	shallow = true
 [submodule "dep/ohmytmux"]
 	path = dep/ohmytmux
 	url = ../../gpakosz/.tmux.git
+	shallow = true
 [submodule "dep/awesome-vimrc"]
 	path = dep/awesome-vimrc
 	url = ../../amix/vimrc.git
+	shallow = true
 [submodule "dep/nvchad"]
 	path = dep/nvchad
 	url = ../../NvChad/NvChad.git
+	shallow = true
