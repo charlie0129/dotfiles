@@ -7,7 +7,7 @@ Most of these files are added during my OS reinstalls.
 
 ## Try
 
-You can use Docker to try out these dotfiles in a container without installing them into your system.
+You can use Docker to try out these dotfiles in a container without installing them into your system. Note that it is expected to be some display issues with the prompt.
 
 ```bash
 # We need some source to build the container
