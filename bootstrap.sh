@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
 
-# Make sure bash version is at least 4.0
-BASH_VERSION_MAJOR=$(echo "${BASH_VERSION}" | cut -d. -f1)
-if [ "${BASH_VERSION_MAJOR}" -lt 4 ]; then
-    echo "Bash version must be at least 4.0, but you are running ${BASH_VERSION}." 1>&2
-    echo "This error typically occurs on macOS. You can install a newer bash using Homebrew." 1>&2
-    exit 1
-fi
-
 # cd into where this script lives
 SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 cd "${SCRIPT_DIR}" || exit 1
@@ -107,6 +99,7 @@ fix_executable_permissions
 
 # Install crontabs
 if command -v cron >/dev/null 2>&1; then
+    echo "Installing crontabs for root..."
     # Install *root* crontab for darwin/linux
     CRONFILE="${HOME}/dotfiles/cron/${OS}/root.conf"
     if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ] || [ "${OS}" = "linux" ]; then
