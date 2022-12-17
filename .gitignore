@@ -1,5 +1,10 @@
+# Mac trash
 .DS_Store
 ._*
+
+# Python-related
+__pycache__
+
 test.sh
 
 # Custom resources
