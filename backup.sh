@@ -9,6 +9,7 @@ SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
 cd "${SCRIPT_DIR}" || exit 1
 
 # Make directory for backup
+mkdir -p "${BACKUP_STORE}" || exit 1
 cp "restore.sh" "${BACKUP_STORE}"
 
 BACKUP_DIRS=(
