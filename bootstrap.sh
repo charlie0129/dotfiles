@@ -14,7 +14,6 @@ if [ "${REPO_ROOT}" != "${HOME}/dotfiles" ]; then
 fi
 
 FORCE=""
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -97,27 +96,12 @@ cd $REPO_ROOT && link_files && cd "$OLDPWD"
 # Add +x permissions to all executables
 fix_executable_permissions
 
-# Install crontabs
-if command -v cron >/dev/null 2>&1; then
-    echo "Installing crontabs for root..."
-    # Install *root* crontab for darwin/linux
-    CRONFILE="${HOME}/dotfiles/cron/${OS}/root.conf"
-    if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ] || [ "${OS}" = "linux" ]; then
-        if [ "$EUID" -ne 0 ]; then
-            sudo crontab "${CRONFILE}"
-        else
-            crontab "${CRONFILE}"
-        fi
-    fi
-fi
-
-# Do not track custom configs
+# If git is installed, skip tracking custom configs
 CUSTOM_CONFIGS=(
     alias/custom.sh
     env/custom.sh
     custom-omz-plugins.sh
 )
-# If git is installed, skip tracking custom configs
 if command -v git >/dev/null 2>&1; then
     git update-index --skip-worktree "${CUSTOM_CONFIGS[@]}"
 fi
