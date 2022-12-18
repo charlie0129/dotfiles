@@ -1,7 +1,3 @@
 #!/usr/bin/env bash
 
-cd "$ZSH/custom/themes/powerlevel10k" && git pull && cd $OLDPWD || exit 1
-cd "$ZSH/custom/plugins/zsh-autosuggestions" && git pull && cd $OLDPWD || exit 1
-cd "$ZSH/custom/plugins/zsh-syntax-highlighting" && git pull && cd $OLDPWD || exit 1
-cd "$ZSH/custom/plugins/zsh-nvm" && git pull && cd $OLDPWD || exit 1
-omz update || exit 1
+cd ~/dotfiles && git submodule update --remote
