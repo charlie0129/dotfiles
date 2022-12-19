@@ -3,7 +3,7 @@
 # This list is inserted before PATH
 PATH_BEFORE=(
     # bin in this repo
-    $HOME/dotfiles/bin/linux
+    $DOTFILES_ROOT/bin/linux
 )
 
 # This list is appended after PATH

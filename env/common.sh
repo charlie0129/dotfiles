@@ -6,7 +6,7 @@ PATH_BEFORE=(
     $HOME/bin
     $HOME/.local/bin
     # bin in this repo
-    $HOME/dotfiles/bin/common
+    $DOTFILES_ROOT/bin/common
     # Go bin
     $HOME/go/bin
 )

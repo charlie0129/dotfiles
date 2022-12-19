@@ -7,7 +7,7 @@ alias htop='sudo htop'
 alias gcl1='git clone --depth=1'
 
 # Quick update dotfiles
-alias update-dotfiles='git -C ${HOME}/dotfiles pull'
+alias update-dotfiles='cd $DOTFILES_ROOT && git submodule update --remote && cd $OLDPWD'
 
 # cloc with common non-relevant dirs excluded
 alias cloc1="cloc --exclude-dir=node_modules,.idea,.mvn,.git --exclude-ext=.log,.lock,.tsbuildinfo"

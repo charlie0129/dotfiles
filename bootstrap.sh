@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
 
 # cd into where this script lives
-SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
-cd "${SCRIPT_DIR}" || exit 1
+cd "$(dirname "${BASH_SOURCE}")" || exit 1
 
-REPO_ROOT="${PWD}"
-
-# Make sure REPO_ROOT is ${HOME}/dotfiles
-if [ "${REPO_ROOT}" != "${HOME}/dotfiles" ]; then
-    echo "The whole dotfiles repo must be cloned to ${HOME}/dotfiles" 1>&2
-    echo "Currently in ${REPO_ROOT}" 1>&2
-    exit 1
-fi
+export DOTFILES_ROOT="${PWD}"
 
 FORCE=""
 
@@ -89,9 +81,9 @@ function fix_executable_permissions() {
 }
 
 # Link dependencies
-cd dep && link_files && cd "$OLDPWD"
+cd dep && link_files && cd "$DOTFILES_ROOT"
 # Link files
-cd $REPO_ROOT && link_files && cd "$OLDPWD"
+cd "$DOTFILES_ROOT" && link_files && cd "$DOTFILES_ROOT"
 
 # Add +x permissions to all executables
 fix_executable_permissions

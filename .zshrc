@@ -1,4 +1,7 @@
-# Measures performance
+export DOTFILES_ROOT="$(dirname $(readlink ~/.zshrc))"
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+# Measures zsh startup performance problems
 # zmodload zsh/zprof
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
@@ -8,42 +11,19 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
-
 # Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+export ZSH="$DOTFILES_ROOT/dep/ohmyzsh"
 
 ZSH_DISABLE_COMPFIX=true
 
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
 # Uncomment the following line to use hyphen-insensitive completion.
 # Case-sensitive completion must be off. _ and - will be interchangeable.
 # HYPHEN_INSENSITIVE="true"
 
-# Uncomment the following line to disable bi-weekly auto-update checks.
+# Disable bi-weekly auto-update checks.
 DISABLE_AUTO_UPDATE="true"
-
-# Uncomment the following line to automatically update without prompting.
-# DISABLE_UPDATE_PROMPT="true"
-
-# Uncomment the following line to change how often to auto-update (in days).
-# export UPDATE_ZSH_DAYS=13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS=true
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
 
 # Uncomment the following line to enable command auto-correction.
 # ENABLE_CORRECTION="true"
@@ -74,10 +54,11 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 VI_MODE_RESET_PROMPT_ON_MODE_CHANGE=true
 
 # Load custom plugins
-source "$HOME/dotfiles/custom-omz-plugins.sh"
+source "$DOTFILES_ROOT/custom-omz-plugins.sh"
 
-# These are default plugins, to add you custom plugins (so that it won't be tracked by git)
-# add them in "$HOME/dotfiles/custom-omz-plugins.sh".
+# These are default plugins.
+# To add your custom plugins, add them in custom-omz-plugins.sh,
+# so that it won't be tracked by git.
 default_plugins=(
     git
     zsh-autosuggestions
@@ -103,36 +84,37 @@ export EDITOR="vim"
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
 
+# Locd powerlevel10k settings
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # Source env definitions in this dotfiles repo
 # Note that what sourced first will actually have lower priority in PATH due to how it works
 # OS specific definitions
-if [ -f "$HOME/dotfiles/env/${OS}.sh" ]; then
-    source "$HOME/dotfiles/env/${OS}.sh"
+if [ -f "$DOTFILES_ROOT/env/${OS}.sh" ]; then
+    source "$DOTFILES_ROOT/env/${OS}.sh"
 fi
 # Load common definitions
-if [ -f "$HOME/dotfiles/env/common.sh" ]; then
-    source "$HOME/dotfiles/env/common.sh"
+if [ -f "$DOTFILES_ROOT/env/common.sh" ]; then
+    source "$DOTFILES_ROOT/env/common.sh"
 fi
 # Custom definition always loads first
-if [ -f "$HOME/dotfiles/env/custom.sh" ]; then
-    source "$HOME/dotfiles/env/custom.sh"
+if [ -f "$DOTFILES_ROOT/env/custom.sh" ]; then
+    source "$DOTFILES_ROOT/env/custom.sh"
 fi
 # Source complete
 
 # Source alias in this dotfiles repo
 # OS specific alias
-if [ -f "$HOME/dotfiles/alias/${OS}.sh" ]; then
-    source "$HOME/dotfiles/alias/${OS}.sh"
+if [ -f "$DOTFILES_ROOT/alias/${OS}.sh" ]; then
+    source "$DOTFILES_ROOT/alias/${OS}.sh"
 fi
 # Load common alias
-if [ -f "$HOME/dotfiles/alias/common.sh" ]; then
-    source "$HOME/dotfiles/alias/common.sh"
+if [ -f "$DOTFILES_ROOT/alias/common.sh" ]; then
+    source "$DOTFILES_ROOT/alias/common.sh"
 fi
 # Custom alias always have higher priority
-if [ -f "$HOME/dotfiles/alias/custom.sh" ]; then
-    source "$HOME/dotfiles/alias/custom.sh"
+if [ -f "$DOTFILES_ROOT/alias/custom.sh" ]; then
+    source "$DOTFILES_ROOT/alias/custom.sh"
 fi
 

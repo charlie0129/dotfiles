@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 
+SCRIPT_DIR="$(dirname "${BASH_SOURCE}")"
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
 # Install crontabs
 echo "Installing crontabs for root..."
 # Install *root* crontab for darwin/linux
-CRONFILE="${HOME}/dotfiles/cron/${OS}/root.conf"
-if [ -f "${CRONFILE}" ] && [ "${OS}" = "darwin" ] || [ "${OS}" = "linux" ]; then
+CRONFILE="$SCRIPT_DIR/$OS/root.conf"
+if [ -f "$CRONFILE" ] && [ "$OS" = "darwin" ] || [ "$OS" = "linux" ]; then
     if [ "$EUID" -ne 0 ]; then
-        sudo crontab "${CRONFILE}"
+        sudo crontab "$CRONFILE"
     else
-        crontab "${CRONFILE}"
+        crontab "$CRONFILE"
     fi
 fi
