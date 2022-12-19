@@ -10,7 +10,7 @@ Most of these files are added during my OS reinstalls.
 You can use Docker to try out these dotfiles in a container without installing them into your system. Note that it is expected to be some display issues with the prompt.
 
 ```bash
-# We need some source to build the container
+# We need source code to build the container
 git clone --recurse-submodules --shallow-submodules https://github.com/charlie0129/dotfiles
 cd dotfiles
 # Build the container. Just installs some packages, copies the dotfiles, bootstaps dotfiles, and that's it.
@@ -22,14 +22,15 @@ docker run -it --rm dotfiles /bin/zsh
 ## Install
 
 ```bash
-# Clone this repo to ~/dotfiles.
+# Clone this repo to anywhere you want. 
+# `~/dotfiles` is recommended, which is used in this example.
 git clone --recurse-submodules --shallow-submodules https://github.com/charlie0129/dotfiles ~/dotfiles
 cd ~/dotfiles
 # Install the dotfiles. (If necessary, use -f to overwrite any existing files.)
 ./bootstrap.sh
 ```
 
-You can put custom commands and bin in `alias/custom.sh`, `bin/custom/`, and `env/custom.sh`. (TODO: write some documentations.)
+You can put custom commands and bin in `alias/custom.sh`, `bin/custom/`, and `env/custom.sh`, which will not be tracked by git. (TODO: write some documentations.)
 
 ## Overview
 

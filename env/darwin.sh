@@ -6,7 +6,7 @@ PATH_BEFORE=(
     /usr/local/bin
     /usr/local/sbin
     # bin in this repo
-    $HOME/dotfiles/bin/darwin
+    $DOTFILES_ROOT/bin/darwin
     # Homebrew installed OpenJDK
     /usr/local/opt/openjdk/bin
     /usr/local/opt/curl/bin

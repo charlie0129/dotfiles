@@ -14,11 +14,11 @@
 .tmux.conf.local:$HOME/.tmux.conf.local
 
 # vim config
-.vimrc.local:$REPO_ROOT/dep/awesome-vimrc/my_configs.vim
+.vimrc.local:$DOTFILES_ROOT/dep/awesome-vimrc/my_configs.vim
 .vimrc:$HOME/.vimrc
 
 # ideavim config
 .ideavimrc:$HOME/.ideavimrc
 
 # neovim config
-nvim:$REPO_ROOT/dep/nvchad/lua/custom
+nvim:$DOTFILES_ROOT/dep/nvchad/lua/custom
