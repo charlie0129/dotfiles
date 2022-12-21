@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+
+# List APFS snapshots on root volume, in a more readable format.
+
+import subprocess
+import re
+import os
+from importlib.machinery import SourceFileLoader
+from typing import List
+
+# get parent directory of this script
+parent_dir = os.path.dirname(os.path.abspath(__file__))
+
+takesnapshot = SourceFileLoader(
+    'takesnapshot', os.path.join(parent_dir, 'takesnapshot')).load_module()
+
+run = takesnapshot.run
+color_black_bold = "\033[1;30m"
+color_green = "\033[0;32m"
+color_yellow = "\033[0;33m"
+color_cyan = "\033[0;36m"
+color_blue = "\033[0;34m"
+color_off = "\033[0m"
+
+if __name__ == '__main__':
+    current_snapshots = run(
+        ["/usr/bin/tmutil", "listlocalsnapshotdates", "/"]).split("\n")[1:]
+    # Match lines with regex YYYY-MM-DD-HHMMSS
+    current_snapshots = [x for x in current_snapshots if re.match(
+        r"\d{4}-\d{2}-\d{2}-\d{6}", x)]
+
+    last_day = ""
+    last_hour = ""
+    last_minute = ""
+    for i in current_snapshots:
+        day = i[0:10]
+        hour = i[11:13]
+        minute = i[13:15]
+        second = i[15:17]
+
+        if day != last_day:
+            print(f"{color_cyan}{day}{color_off} {color_yellow}{hour}{color_off}:{color_green}{minute}{color_off}:{color_blue}{second}{color_off}")
+        else:
+            if hour != last_hour:
+                print(
+                    f"{color_black_bold}{day}{color_off} {color_yellow}{hour}{color_off}:{color_green}{minute}{color_off}:{color_blue}{second}{color_off}")
+            else:
+                if minute != last_minute:
+                    print(
+                        f"{color_black_bold}{day} {hour}:{color_off}{color_green}{minute}{color_off}:{color_blue}{second}{color_off}")
+                else:
+                    print(
+                        f"{color_black_bold}{day} {hour}:{minute}{color_off}:{color_blue}{second}{color_off}")
+
+        last_day = day
+        last_hour = hour
+        last_minute = minute
