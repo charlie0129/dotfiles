@@ -21,45 +21,45 @@ from typing import List
 def run(cmd: List[str]) -> str:
     return subprocess.check_output(cmd).decode("utf-8").rstrip()
 
+if __name__ == '__main__':
+    current_snapshots = run(
+        ["/usr/bin/tmutil", "listlocalsnapshotdates", "/"]).split("\n")[1:]
+    # Match lines with regex YYYY-MM-DD-HHMMSS
+    current_snapshots = [x for x in current_snapshots if re.match(
+        r"\d{4}-\d{2}-\d{2}-\d{6}", x)]
 
-current_snapshots = run(
-    ["/usr/bin/tmutil", "listlocalsnapshotdates", "/"]).split("\n")[1:]
-# Match lines with regex YYYY-MM-DD-HHMMSS
-current_snapshots = [x for x in current_snapshots if re.match(
-    r"\d{4}-\d{2}-\d{2}-\d{6}", x)]
 
+    # Get what snapshots are taken in each hour,
+    # but exclude the last 3 snapshots, because we want quarterly snapshots.
+    hourly_snapshots = {}
+    for i in current_snapshots[:-3]:
+        key = i[:13]
+        if key not in hourly_snapshots:
+            hourly_snapshots[key] = []
+        hourly_snapshots[key].append(i[13:])
 
-# Get what snapshots are taken in each hour,
-# but exclude the last 3 snapshots, because we want quarterly snapshots.
-hourly_snapshots = {}
-for i in current_snapshots[:-3]:
-    key = i[:13]
-    if key not in hourly_snapshots:
-        hourly_snapshots[key] = []
-    hourly_snapshots[key].append(i[13:])
+    # Make sure there 1 snapshot per hour, and delete the excess snapshots.
+    deleted_snapshots = 0
+    for i in hourly_snapshots:
+        snapshots = hourly_snapshots[i]
+        if len(snapshots) > 1:
+            print(
+                f"Deleting {len(snapshots) - 1} snapshot{'' if len(snapshots)-1==1 else 's'} in hour {i}xxxx:")
+            for j in snapshots[:-1]:
+                out = run(
+                    ["/usr/bin/tmutil", "deletelocalsnapshots", i + j])
+                print(f"  - {i + j}: {out}")
+                deleted_snapshots += 1
 
-# Make sure there 1 snapshot per hour, and delete the excess snapshots.
-deleted_snapshots = 0
-for i in hourly_snapshots:
-    snapshots = hourly_snapshots[i]
-    if len(snapshots) > 1:
+    if deleted_snapshots == 0:
+        print("No snapshots need to be deleted.")
+    else:
         print(
-            f"Deleting {len(snapshots) - 1} snapshot{'' if len(snapshots)-1==1 else 's'} in hour {i}xxxx:")
-        for j in snapshots[:-1]:
-            out = run(
-                ["/usr/bin/tmutil", "deletelocalsnapshots", i + j])
-            print(f"  - {i + j}: {out}")
-            deleted_snapshots += 1
+            f"Deleted {deleted_snapshots} snapshot{'' if deleted_snapshots==1 else 's'} in total.")
 
-if deleted_snapshots == 0:
-    print("No snapshots need to be deleted.")
-else:
-    print(
-        f"Deleted {deleted_snapshots} snapshot{'' if deleted_snapshots==1 else 's'} in total.")
-
-# Take a new snapshot.
-print("Taking new snapshot:")
-start_time = time.time()
-print("  - " + run(["/usr/bin/tmutil", "localsnapshot", "/"]))
-end_time = time.time()
-print(f"New snapshot taken in {math.floor((end_time - start_time)*1000)} ms.")
+    # Take a new snapshot.
+    print("Taking new snapshot:")
+    start_time = time.time()
+    print("  - " + run(["/usr/bin/tmutil", "localsnapshot", "/"]))
+    end_time = time.time()
+    print(f"New snapshot taken in {math.floor((end_time - start_time)*1000)} ms.")
