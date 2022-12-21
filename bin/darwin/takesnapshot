@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+
+# Takes APFS snapshots of the root volume.
+# Also deletes excess snapshots so that there is only 1 snapshot per hour.
+# However, the last 4 or 5 snapshots will not be deleted, even if they are
+# taken in the same hour.
+
+# For example, if you run this script every 15 minutes, you will have
+# quarterly snapshots for the last 1 hour, and hourly snapshots for the
+# last 24 hours (macOS only keeps snapshots for 24 hours, so there are
+# no weekly or monthly snapshots).
+
+import subprocess
+import re
+import time
+import math
+
+from typing import List
+
+
+def run(cmd: List[str]) -> str:
+    return subprocess.check_output(cmd).decode("utf-8").rstrip()
+
+
+current_snapshots = run(
+    ["/usr/bin/tmutil", "listlocalsnapshotdates", "/"]).split("\n")[1:]
+# Match lines with regex YYYY-MM-DD-HHMMSS
+current_snapshots = [x for x in current_snapshots if re.match(
+    r"\d{4}-\d{2}-\d{2}-\d{6}", x)]
+
+
+# Get what snapshots are taken in each hour,
+# but exclude the last 3 snapshots, because we want quarterly snapshots.
+hourly_snapshots = {}
+for i in current_snapshots[:-3]:
+    key = i[:13]
+    if key not in hourly_snapshots:
+        hourly_snapshots[key] = []
+    hourly_snapshots[key].append(i[13:])
+
+# Make sure there 1 snapshot per hour, and delete the excess snapshots.
+deleted_snapshots = 0
+for i in hourly_snapshots:
+    snapshots = hourly_snapshots[i]
+    if len(snapshots) > 1:
+        print(
+            f"Deleting {len(snapshots) - 1} snapshot{'' if len(snapshots)-1==1 else 's'} in hour {i}xxxx:")
+        for j in snapshots[:-1]:
+            out = run(
+                ["/usr/bin/tmutil", "deletelocalsnapshots", i + j])
+            print(f"  - {i + j}: {out}")
+            deleted_snapshots += 1
+
+if deleted_snapshots == 0:
+    print("No snapshots need to be deleted.")
+else:
+    print(
+        f"Deleted {deleted_snapshots} snapshot{'' if deleted_snapshots==1 else 's'} in total.")
+
+# Take a new snapshot.
+print("Taking new snapshot:")
+start_time = time.time()
+print("  - " + run(["/usr/bin/tmutil", "localsnapshot", "/"]))
+end_time = time.time()
+print(f"New snapshot taken in {math.floor((end_time - start_time)*1000)} ms.")
