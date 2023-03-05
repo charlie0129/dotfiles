@@ -11,7 +11,7 @@ confirm "Allow quitting Finder via ⌘ + Q" &&
     defaults write com.apple.finder QuitMenuItem -bool true
 
 confirm "Set Computer as the default location for new Finder windows" &&
-    defaults write com.apple.finder NewWindowTarget -string "PfDe"
+    defaults write com.apple.finder NewWindowTarget -string "PfCm"
 
 confirm "Show hidden files by default" &&
     defaults write com.apple.finder AppleShowAllFiles -bool true
@@ -68,5 +68,10 @@ confirm "Show the ~/Library and /Volumes folder" &&
     xattr -d com.apple.FinderInfo ~/Library &&
     sudo chflags nohidden /Volumes
 
-echo "That's all for now. You may need to restart the corresponding apps, or even your computer for the changes to take effect."
+confirm "Empty bin items after 30 days" &&
+    defaults write com.apple.finder FXRemoveOldTrashItems -bool true
+
+confirm "Restart Finder for the changes to take effect" &&
+    killall Dock
+
 exit 0

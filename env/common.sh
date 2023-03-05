@@ -9,6 +9,8 @@ PATH_BEFORE=(
     $DOTFILES_ROOT/bin/common
     # Go bin
     $HOME/go/bin
+    # Cargo bin
+    $HOME/.cargo/bin
 )
 
 # This list is appended after PATH
@@ -23,5 +25,5 @@ export PATH
 # GPG
 export GPG_TTY=$(tty)
 
-# Go proxy in China
+# Setup Go proxy in China
 export GOPROXY=https://goproxy.cn

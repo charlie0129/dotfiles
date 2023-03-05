@@ -1,8 +1,8 @@
 MAKEFLAGS += -s --always-make
 
-SCRIPTS = $(wildcard *.sh)
+SCRIPTS = $(patsubst %.sh, %, $(wildcard *.sh))
 
 all: $(SCRIPTS)
 
 $(SCRIPTS):
-	bash $@
+	bash $@.sh
