@@ -11,7 +11,7 @@ confirm() {
         if [[ $yestoall -eq 1 ]]; then
             return 0
         fi
-        echo -en "\t[\033[32;1my\033[0mes] [\033[32;1mY\033[0mes to all] [\033[32;1mn\033[0mo] [\033[32;1mN\033[0mo to all]: "
+        printf "[    \033[32;1my\033[0mes    ] [ \033[32;1mY\033[0mes to all ] [     \033[32;1mn\033[0mo     ] [ \033[32;1mN\033[0mo to all ]: "
         read -r -n 1 REPLY
         case $REPLY in
         [y])

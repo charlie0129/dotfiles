@@ -4,7 +4,7 @@
 alias htop='sudo htop'
 
 # Shallow git clone
-alias gcl1='git clone --depth=1'
+alias gcl1='git clone --recurse-submodules --shallow-submodules --depth=1'
 
 # Quick update dotfiles
 alias update-dotfiles='cd $DOTFILES_ROOT && git submodule update --remote && cd $OLDPWD'
@@ -16,27 +16,16 @@ alias cloc1="cloc --exclude-dir=node_modules,.idea,.mvn,.git --exclude-ext=.log,
 alias tzst="tar --preserve-permissions --use-compress-program zstd -cf"
 alias untzst="tar --preserve-permissions --use-compress-program zstd -xf"
 
-# Short for docker-compose
-alias comp="docker-compose"
-
-# Short for kubectl
-alias k="kubectl"
-alias kgp="kubectl get pods"
-alias kgd="kubectl get deployments"
-alias kgno"kubectl get nodes"
-
-# short for vela
-alias v="vela"
-alias va="vela addon"
-alias vae="vela addon enable"
-alias vad="vela addon disable"
-alias val="vela addon list"
-alias vap="vela addon package"
-alias vd="vela def"
-alias vdl="vela def list"
-
-# Short for helm
-alias h="helm"
+# Short for docker compose
+alias comp="docker compose"
 
 # Common mistakes
 alias code.="code ."
+
+# Setup local proxy
+PROXY_ADDR="http://127.0.0.1:30000"
+alias setproxy="export http_proxy=${PROXY_ADDR}; export https_proxy=${PROXY_ADDR}; export HTTP_PROXY=${PROXY_ADDR}; export HTTPS_PROXY=${PROXY_ADDR};"
+alias unsetproxy="unset http_proxy; unset https_proxy; unset HTTP_PROXY; unset HTTPS_PROXY;"
+
+# bbdown - Download Bilibili video
+alias bbdown="bbdown --show-all --interactive --download-danmaku"

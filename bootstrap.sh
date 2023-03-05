@@ -102,5 +102,5 @@ if [ "${SHELL}" != "/bin/zsh" ]; then
     echo "Your default shell is not zsh. Use 'chsh -s /bin/zsh' to change it."
 fi
 
-echo "Bootstrap complete!"
+echo "Bootstrap complete! Please DO check the output above for any errors."
 echo "Run 'source ~/.zshrc' for the changes to take effect."

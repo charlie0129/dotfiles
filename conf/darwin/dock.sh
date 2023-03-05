@@ -7,8 +7,8 @@ source "../../bin/util/confirm.sh"
 
 echo "===== Dock Configurations ====="
 
-confirm "Set the icon size of Dock items to 36 pixels" &&
-    defaults write com.apple.dock tilesize -int 36
+confirm "Set the icon size of Dock items to 28 pixels" &&
+    defaults write com.apple.dock tilesize -int 28
 
 confirm "Enable spring loading for all Dock items" &&
     defaults write com.apple.dock enable-spring-load-actions-on-all-items -bool true
@@ -30,4 +30,8 @@ confirm "Make Dock icons of hidden applications translucent" &&
 #defaults write com.apple.dock showLaunchpadGestureEnabled -int 0
 
 echo "That's all for now. You may need to restart the corresponding apps, or even your computer for the changes to take effect."
+
+confirm "Restart Dock for the changes to take effect" &&
+    killall Dock
+
 exit 0
