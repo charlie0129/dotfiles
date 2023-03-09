@@ -83,3 +83,7 @@ export GPG_TTY=$(tty)
 
 # Setup Go proxy in China
 export GOPROXY=https://goproxy.cn
+
+# Local proxy. Will be used in aliases like setproxy.
+# To override it, set the same variable in custom.sh
+export PROXY_ADDR="http://127.0.0.1:30000"
