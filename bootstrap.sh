@@ -96,6 +96,7 @@ CUSTOM_CONFIGS=(
 )
 if command -v git >/dev/null 2>&1; then
     git update-index --skip-worktree "${CUSTOM_CONFIGS[@]}"
+    # To revert: git update-index --no-skip-worktree "${CUSTOM_CONFIGS[@]}"
 fi
 
 if [ "${SHELL}" != "/bin/zsh" ]; then
