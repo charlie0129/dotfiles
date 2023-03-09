@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-# AnVMSR
-alias rdmsr='sudo $HOME/Documents/git/AnVMSR/Release-10.15/anvmsr readmsr'
-alias wrmsr='sudo $HOME/Documents/git/AnVMSR/Release-10.15/anvmsr writemsr'
-
-# Reset CrossOver bottle evaluation
-alias rstbotteval='rm -f $HOME/Library/Application\ Support/CrossOver/Bottles/*/.eval'
-
 # git proxy
-alias git_setproxy="git config --global http.proxy http://127.0.0.1:1087; git config --global https.proxy http://127.0.0.1:1087;"
+alias git_setproxy='git config --global http.proxy ${PROXY_ADDR}; git config --global https.proxy ${PROXY_ADDR};'
 alias git_unsetproxy="git config --global --unset http.proxy; git config --global --unset https.proxy;"
 
 # Get a shell inside Docker Desktop Linuxkit VM
