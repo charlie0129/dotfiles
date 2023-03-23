@@ -31,4 +31,4 @@ export HOMEBREW_NO_AUTO_UPDATE=true
 # export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles
 
 # Set Homebrew-installed OpenJDK 17, change this accordingly
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+# export JAVA_HOME=$(/usr/libexec/java_home -v 17)
