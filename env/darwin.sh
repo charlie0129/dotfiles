@@ -2,9 +2,12 @@
 
 # This list is inserted before PATH
 PATH_BEFORE=(
-    # Homebrew
+    # Homebrew x86_64
     /usr/local/bin
     /usr/local/sbin
+    # Homebrew arm64
+    /opt/homebrew/bin
+    /opt/homebrew/sbin
     # bin in this repo
     $DOTFILES_ROOT/bin/darwin
     # Homebrew-installed OpenJDK takes higher priority
