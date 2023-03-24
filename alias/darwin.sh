@@ -15,7 +15,7 @@ alias unloadzerotier="sudo launchctl unload /Library/LaunchDaemons/com.zerotier.
 alias pc="proxychains4"
 
 # Transparent filesystem compression using afsctool
-alias -g tcomp="afsctool -c -J6 -T LZFSE"
+alias -g tcomp='afsctool -c -J$(sysctl -n hw.physicalcpu) -T LZFSE'
 alias tcompi="afsctool -v"
 
 # asitop: monitor Apple Silicon macos
