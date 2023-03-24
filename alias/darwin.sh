@@ -17,3 +17,6 @@ alias pc="proxychains4"
 # Transparent filesystem compression using afsctool
 alias -g tcomp="afsctool -c -J6 -T LZFSE"
 alias tcompi="afsctool -v"
+
+# asitop: monitor Apple Silicon macos
+alias asitop="sudo asitop --color 7"
