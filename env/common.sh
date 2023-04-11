@@ -82,7 +82,7 @@ export EDITOR="vim"
 export GPG_TTY=$(tty)
 
 # Setup Go proxy in China
-export GOPROXY=https://goproxy.cn
+export GOPROXY=https://goproxy.cn,direct
 
 # Local proxy. Will be used in aliases like setproxy.
 # To override it, set the same variable in custom.sh
