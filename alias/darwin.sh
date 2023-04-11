@@ -20,3 +20,7 @@ alias tcompi="afsctool -v"
 
 # asitop: monitor Apple Silicon macos
 alias asitop="sudo asitop --color 7"
+
+# common mistakes
+alias open.="open ."
+alias open,="open ."
