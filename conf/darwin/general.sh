@@ -47,7 +47,7 @@ confirm "Allow short passwords" &&
     sudo pwpolicy -clearaccountpolicies
 
 confirm "Disable Spotlight indexing for any volume that gets mounted and has not yet been indexed before" &&
-    sudo defaults write /.Spotlight-V100/VolumeConfiguration Exclusions -array "/Volumes"
+    sudo defaults write /System/Volumes/Data/.Spotlight-V100/VolumeConfiguration Exclusions -array "/Volumes"
 
 confirm "Prevent Time Machine from prompting to use new hard drives as backup volume" &&
     defaults write com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true
