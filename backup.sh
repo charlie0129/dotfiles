@@ -20,7 +20,17 @@ BACKUP_FILES=(
     ".zsh_history"
 )
 
+SKIP_DIRS=(
+    ".DS_Store"
+    "._*"
+    "dotfiles/dep/awesome-vimrc/temp_dirs"
+)
+
 # tar BACKUP_DIST
-tar czf "${BACKUP_DIST}.tar.gz" --directory="${HOME}" "${BACKUP_DIRS[@]}" "${BACKUP_FILES[@]}" || exit 1
+tar czf "${BACKUP_DIST}.tar.gz" \
+    --directory="${HOME}" \
+    "${SKIP_DIRS[@]/#/--exclude=}" \
+    "${BACKUP_DIRS[@]}" "${BACKUP_FILES[@]}" || exit 1
 
 echo "Your custom config have been backed up to ${BACKUP_DIST}.tar.gz"
+echo "To restore this backup, run: bash $BACKUP_STORE/restore.sh ${BACKUP_DIST}.tar.gz"
