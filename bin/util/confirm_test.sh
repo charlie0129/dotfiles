@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. confirm.sh
+source "$(dirname "${BASH_SOURCE}")/confirm.sh"
 
 confirm "Confirmation 1" && echo "You have confirmed 1."
 confirm "Confirmation 2" && echo "You have confirmed 2."
