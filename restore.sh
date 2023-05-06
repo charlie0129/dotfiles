@@ -15,13 +15,14 @@ if [ ! -f "${BACKUP_ARCHIVE}" ]; then
     exit 1
 fi
 
-# Restore location. `dotfiles`` will be restored to this location.
+# Restore location. `dotfiles` will be restored to this location.
 RESTORE_DIR="${HOME}"
 
 mkdir -p "$RESTORE_DIR"
 
-tar xf "${BACKUP_ARCHIVE}" --directory="${RESTORE_DIR}"|| exit 1
+tar xf "${BACKUP_ARCHIVE}" --directory="${RESTORE_DIR}" || exit 1
 
+echo "Running bootstrap..."
 bash "${RESTORE_DIR}/dotfiles/bootstrap.sh" -f
 
 echo "Your custom config have been restored"
