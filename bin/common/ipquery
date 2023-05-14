@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -o errexit
+
+# Must have one parameter
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <ipv4/ipv6>"
+    exit 1
+fi
+
+ret=$(curl -fsSL -X GET -G "http://ip.zxinc.org/api.php" \
+    --data-urlencode "type=json" \
+    --data-urlencode "ip=$1" |
+    jq -r '.data')
+
+query=$(echo "$ret" | jq -r '.ip | .query')
+location=$(echo "$ret" | jq -r '.location' | tr '\t' '\n')
+
+echo -e "$query\n$location"
