@@ -13,8 +13,8 @@ alias update-dotfiles='cd $DOTFILES_ROOT && git submodule update --remote && cd 
 alias cloc1="cloc --exclude-dir=node_modules,.idea,.mvn,.git --exclude-ext=.log,.lock,.tsbuildinfo"
 
 # Zstandard related
-alias tzst="tar --preserve-permissions --use-compress-program zstd -cf"
-alias untzst="tar --preserve-permissions --use-compress-program zstd -xf"
+alias tzst='tar --preserve-permissions --use-compress-program "zstd -T0" -cf'
+alias untzst='tar --preserve-permissions --use-compress-program zstd -xf'
 
 # Short for docker compose
 alias comp="docker compose"
