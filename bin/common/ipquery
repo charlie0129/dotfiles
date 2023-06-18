@@ -2,18 +2,30 @@
 
 set -o errexit
 
-# Must have one parameter
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <ipv4/ipv6>"
-    exit 1
+if [[ $1 = "-h" ]]; then
+    echo "ipquery: query current ip"
+    echo "ipquery <ip>: query the given ip"
+    exit 0
 fi
 
-ret=$(curl -fsSL -X GET -G "http://ip.zxinc.org/api.php" \
-    --data-urlencode "type=json" \
-    --data-urlencode "ip=$1" |
-    jq -r '.data')
+api_url="http://ip.zxinc.org/api.php"
 
+# if no parameter, query current ip
+if [ $# -ne 1 ]; then
+    ret=$(curl -fsSL -X GET -G "$api_url" \
+        --data-urlencode "type=json" |
+        jq -r '.data')
+else # query the given ip
+    ret=$(curl -fsSL -X GET -G "$api_url" \
+        --data-urlencode "type=json" \
+        --data-urlencode "ip=$1" |
+        jq -r '.data')
+fi
+
+myip=$(echo "$ret" | jq -r '.myip')
 query=$(echo "$ret" | jq -r '.ip | .query')
-location=$(echo "$ret" | jq -r '.location' | tr '\t' '\n')
+location=$(echo "$ret" | jq -r '.location' | sed 's/\t/\n          /g')
 
-echo -e "$query\n$location"
+echo -e "My IP:    \033[34m$myip\033[0m"
+echo -e "Query IP: \033[32m$query\033[0m"
+echo -e "Result:   \033[32m$location\033[0m"
