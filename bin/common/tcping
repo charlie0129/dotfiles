@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Must have two arguments
+if [[ $# -ne 2 ]]; then
+    echo "Ping a tcp port repeatedly."
+    echo "Usage: $0 <host> <port>"
+    exit 1
+fi
+
+while true; do
+    nc -z -v "$1" "$2"
+    sleep 1
+done
