@@ -11,4 +11,3 @@ warn() {
 error() {
     echo -e "$(date +'%Y-%m-%d %H:%M:%S') \033[31m[ERRO]\033[0m $*"
 }
-

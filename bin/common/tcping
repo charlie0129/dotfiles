@@ -8,6 +8,7 @@ if [[ $# -ne 2 ]]; then
 fi
 
 while true; do
+    echo -n "[$(date +'%H:%M:%S')] "
     nc -z -v "$1" "$2"
     sleep 1
 done
