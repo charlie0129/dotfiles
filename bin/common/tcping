@@ -7,8 +7,10 @@ if [[ $# -ne 2 ]]; then
     exit 1
 fi
 
+cnt=0
 while true; do
-    echo -n "[$(date +'%H:%M:%S')] "
-    nc -z -v "$1" "$2"
+    ret="$(nc -z -v "$1" "$2" 2>&1)"
+    cnt=$((cnt+1))
+    echo "[$cnt, $(date +'%H:%M:%S')] $ret"
     sleep 1
 done
