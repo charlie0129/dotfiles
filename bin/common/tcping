@@ -1,16 +1,46 @@
 #!/bin/bash
 
-# Must have two arguments
-if [[ $# -ne 2 ]]; then
-    echo "Ping a tcp port repeatedly."
-    echo "Usage: $0 <host> <port>"
+if [[ $# -eq 1 ]]; then
+    host="${1%:*}"
+    port="${1##*:}"
+elif [[ $# -eq 2 ]]; then
+    host="$1"
+    port="$2"
+else
+    echo "Ping a tcp port repeatedly." >&2
+    echo "  Usage: $0 <host> <port>" >&2
+    echo "  Usage: $0 <host>:<port>" >&2
+    echo "  Example: tcping google.com:443" >&2
+    echo "  Example: tcping google.com 443" >&2
+    echo "  Example: tcping 10.0.0.1:443" >&2
+    echo "  Example: tcping '[2001::1]:443'" >&2
     exit 1
+fi
+
+# if the user doesn't provide a port
+if [[ "$port" == "$host" ]]; then
+    echo "You need to provide a port." >&2
+    exit 1
+fi
+
+# check if the port is a number
+if ! [[ "$port" =~ ^[0-9]+$ ]] ; then
+   echo "invalid port: $port" >&2
+   exit 1
+fi
+
+# handle ipv6 brackets
+if [[ "$host" == \[*\] ]]; then
+    host="${host#[}"
+    host="${host%]}"
 fi
 
 cnt=0
 while true; do
-    ret="$(nc -z -v "$1" "$2" 2>&1)"
+    ret="$(nc -zvw 2 "$host" "$port" 2>&1)"
+    err="$?"
+    ret="${ret//[$'\t\r\n']}"
     cnt=$((cnt+1))
-    echo "[$cnt, $(date +'%H:%M:%S')] $ret"
+    echo "[seq=$cnt, ts=$(date +'%H:%M:%S'), err=$err] $ret"
     sleep 1
 done
