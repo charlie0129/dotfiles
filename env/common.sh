@@ -11,6 +11,8 @@ PATH_BEFORE=(
     $HOME/go/bin
     # Cargo bin
     $HOME/.cargo/bin
+    # Bun bin
+    $HOME/.bun/bin
 )
 
 # This list is appended after PATH
@@ -77,9 +79,6 @@ export EDITOR="vim"
 
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
-
-# GPG
-export GPG_TTY=$(tty)
 
 # Setup Go proxy in China
 export GOPROXY=https://goproxy.cn,direct

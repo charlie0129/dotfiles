@@ -16,8 +16,8 @@ confirm "Disable auto boot" &&
 confirm "Enable TRIM on unsupported SSDs" &&
     sudo nvram EnableTRIM="true"
 
-confirm "Show message on lock screen: \"If you found this computer, please contact +86-138-1208-1508. Thanks in advance.\"" &&
-    sudo nvram good-samaritan-message="If you found this computer, please contact +86-138-1208-1508. Thanks in advance."
+confirm "Show message on lock screen: \"If you found this computer, please contact XXX. Thanks in advance.\"" &&
+    sudo nvram good-samaritan-message="If you found this computer, please contact XXX. Thanks in advance."
 
 confirm "Expand save panel by default" &&
     defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true &&
