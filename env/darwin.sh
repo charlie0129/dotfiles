@@ -14,6 +14,8 @@ PATH_BEFORE=(
     /usr/local/opt/openjdk/bin
     # Homebrew-installed curl takes higher priority
     /usr/local/opt/curl/bin
+    # OrbStack
+    $HOME/.orbstack/bin
 )
 
 # This list is appended after PATH
