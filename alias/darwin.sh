@@ -5,7 +5,7 @@ alias git_setproxy='git config --global http.proxy ${PROXY_ADDR}; git config --g
 alias git_unsetproxy="git config --global --unset http.proxy; git config --global --unset https.proxy;"
 
 # Get a shell inside Docker Desktop Linuxkit VM
-alias nsenter="docker run -it --rm --privileged --pid=host justincormack/nsenter1 /bin/bash"
+alias nsenter="docker run -it --rm --privileged --pid=host justincormack/nsenter1 /bin/sh"
 
 # Load or Unload Zerotier background service
 alias loadzerotier="sudo launchctl load /Library/LaunchDaemons/com.zerotier.one.plist"
