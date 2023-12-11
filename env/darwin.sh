@@ -24,6 +24,8 @@ PATH_AFTER=(
     /Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin
     # `subl` Sublime Text
     /Applications/Sublime\ Text.app/Contents/SharedSupport/bin
+    # `cot` CotEditor
+    /Applications/CotEditor.app/Contents/SharedSupport/bin
 )
 
 PATH="$(IFS=:; echo "${PATH_BEFORE[*]}"):$PATH:$(IFS=:; echo "${PATH_AFTER[*]}")"

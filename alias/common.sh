@@ -22,6 +22,7 @@ alias comp="docker compose"
 # Common mistakes
 alias code.="code ."
 alias code,="code ."
+alias cd..="cd .."
 
 # Setup local proxy
 alias setproxy='export http_proxy=${PROXY_ADDR}; export https_proxy=${PROXY_ADDR}; export HTTP_PROXY=${PROXY_ADDR}; export HTTPS_PROXY=${PROXY_ADDR};'
@@ -29,3 +30,8 @@ alias unsetproxy="unset http_proxy; unset https_proxy; unset HTTP_PROXY; unset H
 
 # bbdown - Download Bilibili video
 alias bbdown="bbdown --show-all --interactive --download-danmaku"
+
+# Python aliases
+alias py="python3"
+alias py2="python2"
+alias py3="python3"
