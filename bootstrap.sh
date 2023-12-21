@@ -7,6 +7,14 @@ export DOTFILES_ROOT="${PWD}"
 
 FORCE=""
 
+# Colors
+COLOR_RED="\033[31m"
+COLOR_BLUE="\033[34m"
+COLOR_GREEN="\033[32m"
+COLOR_YELLOW="\033[33m"
+COLOR_BOLD="\033[1m"
+COLOR_RESET="\033[0m"
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     key="$1"
@@ -53,17 +61,17 @@ function link_files() {
             if [ -L "$dst" ]; then
                 # If it's a symlink to src
                 if [ "$(readlink "$dst")" == "$src" ]; then
-                    printf "%s\n" " - already linked"
+                    printf "${COLOR_GREEN}%s${COLOR_RESET}\n" " - already linked"
                     continue
                 fi
             fi
 
             # If it's not a symlink, or it's a symlink to something else
             if [ "$FORCE" == "y" ]; then
-                printf "%s" " - overwriting"
+                printf "${COLOR_YELLOW}%s${COLOR_RESET}\n" " - overwriting"
                 rm -rf "$dst"
             else
-                printf "%s\n" " - skipped (file already exists, use -f to overwrite)"
+                printf "${COLOR_YELLOW}%s${COLOR_RESET}\n" " - skipped (file already exists, use -f to overwrite)"
                 continue
             fi
         fi
@@ -79,6 +87,11 @@ function link_files() {
 function fix_executable_permissions() {
     find bin -type f -not -name '*.md' -not -name '.gitkeep' -exec chmod +x {} \;
 }
+
+if ! command -v zsh >/dev/null 2>&1; then
+    echo -e "${COLOR_RED}zsh is not installed. Please install it first.${COLOR_RESET}"
+    exit 1
+fi
 
 # Link dependencies
 cd dep && link_files && cd "$DOTFILES_ROOT"
@@ -99,9 +112,9 @@ if command -v git >/dev/null 2>&1; then
     # To revert: git update-index --no-skip-worktree "${CUSTOM_CONFIGS[@]}"
 fi
 
-if [ "${SHELL}" != "/bin/zsh" ]; then
-    echo "Your default shell is not zsh. Use 'chsh -s /bin/zsh' to change it."
+if [ "${SHELL}" != "$(which zsh)" ]; then
+    echo -e "Your default shell is not zsh. Use '${COLOR_BOLD}chsh -s $(which zsh)${COLOR_RESET}' to change it."
 fi
 
-echo "Bootstrap complete! Please DO check the output above for any errors."
-echo "Run 'source ~/.zshrc' for the changes to take effect."
+echo -e "Bootstrap complete! ${COLOR_BOLD}Please DO check the output above for any errors.${COLOR_RESET}"
+echo -e "Run '${COLOR_BOLD}source ~/.zshrc${COLOR_RESET}' for the changes to take effect."
