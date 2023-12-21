@@ -28,7 +28,7 @@ git clone --recurse-submodules --shallow-submodules https://github.com/charlie01
 cd ~/dotfiles
 # Install the dotfiles. Remember to keep an eye on the output for conflicts.
 # If necessary, add a -f option to *overwrite* any existing configuration.
-./bootstrap.sh
+./bootstrap.sh -f
 ```
 
 You can put custom commands and bin in `alias/custom.sh`, `bin/custom/`, and `env/custom.sh`, which will not be tracked by git. (TODO: write some documentations.)
