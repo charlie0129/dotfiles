@@ -8,8 +8,7 @@ RUN apt-get update &&                          \
         ca-certificates
 
 # Use Debian mirrors in China. If you have a good network connection, you probably don't need this.
-RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ sid main contrib non-free" > /etc/apt/sources.list
-RUN apt-get update
+# RUN echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye main contrib non-free" > /etc/apt/sources.list
 
 RUN apt-get install -y --no-install-recommends \
     zsh    \
@@ -23,6 +22,6 @@ RUN chsh -s /bin/zsh
 
 COPY . /root/dotfiles
 
-WORKDIR /root/dotfiles
+WORKDIR /root
 
 RUN ./bootstrap.sh -f
