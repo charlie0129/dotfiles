@@ -7,6 +7,7 @@ import re
 import os
 from importlib.machinery import SourceFileLoader
 from typing import List
+from datetime import datetime
 
 # get parent directory of this script
 parent_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,6 +16,7 @@ takesnapshot = SourceFileLoader(
     'takesnapshot', os.path.join(parent_dir, 'takesnapshot')).load_module()
 
 run = takesnapshot.run
+color_bold = "\033[1m"
 color_black_bold = "\033[1;30m"
 color_green = "\033[0;32m"
 color_yellow = "\033[0;33m"
@@ -32,26 +34,48 @@ if __name__ == '__main__':
     last_day = ""
     last_hour = ""
     last_minute = ""
-    for i in current_snapshots:
-        day = i[0:10]
-        hour = i[11:13]
-        minute = i[13:15]
-        second = i[15:17]
+    last_hr_diff = 0
+    last_min_diff = 0
+    for idx, snap in enumerate(current_snapshots):
+        day = snap[0:10]
+        hour = snap[11:13]
+        minute = snap[13:15]
+        second = snap[15:17]
+
+        print(f"{color_bold}{idx+1:2d}{color_off}: ", end="")
+
 
         if day != last_day:
-            print(f"{color_cyan}{day}{color_off} {color_yellow}{hour}{color_off}:{color_green}{minute}{color_off}:{color_blue}{second}{color_off}")
+            print(f"{color_cyan}{day}{color_off} {color_yellow}{hour}{color_off}:{color_green}{minute}{color_off}:{color_blue}{second}{color_off}", end="")
         else:
             if hour != last_hour:
                 print(
-                    f"{color_black_bold}{day}{color_off} {color_yellow}{hour}{color_off}:{color_green}{minute}{color_off}:{color_blue}{second}{color_off}")
+                    f"{color_black_bold}{day}{color_off} {color_yellow}{hour}{color_off}:{color_green}{minute}{color_off}:{color_blue}{second}{color_off}", end="")
             else:
                 if minute != last_minute:
                     print(
-                        f"{color_black_bold}{day} {hour}:{color_off}{color_green}{minute}{color_off}:{color_blue}{second}{color_off}")
+                        f"{color_black_bold}{day} {hour}:{color_off}{color_green}{minute}{color_off}:{color_blue}{second}{color_off}", end="")
                 else:
                     print(
-                        f"{color_black_bold}{day} {hour}:{minute}{color_off}:{color_blue}{second}{color_off}")
+                        f"{color_black_bold}{day} {hour}:{minute}{color_off}:{color_blue}{second}{color_off}", end="")
+
+        # parse datetime to datetime object
+        snapshot_time = datetime.strptime(snap, "%Y-%m-%d-%H%M%S")
+        current_time = datetime.now()
+
+        # calculate time difference
+        time_diff = current_time - snapshot_time
+        # print time difference in hh:mm format
+        hr_diff = time_diff.seconds // 3600
+        min_diff = (time_diff.seconds // 60) % 60
+        hr_color = color_bold if last_hr_diff != hr_diff else color_black_bold
+        min_color = color_bold if last_min_diff != min_diff else color_black_bold
+        print(f" ({hr_color}{hr_diff:02d}{color_off}:{min_color}{min_diff:02d}{color_off} ago)", end="")
+
+        print()
 
         last_day = day
         last_hour = hour
         last_minute = minute
+        last_hr_diff = hr_diff
+        last_min_diff = min_diff
