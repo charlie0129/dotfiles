@@ -17,7 +17,10 @@ PATH_BEFORE=(
 
 # This list is appended after PATH
 PATH_AFTER=(
+    # Go toolchain
     /usr/local/go/bin
+    # Zig toolchain
+    /usr/local/zig
 )
 
 # Apply changes to PATH

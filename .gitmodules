@@ -32,4 +32,4 @@
 	path = dep/nvchad
 	url = ../../NvChad/NvChad.git
 	shallow = true
-	branch = main
+	branch = v2.0
