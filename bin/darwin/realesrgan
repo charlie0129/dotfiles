@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if ! cd $HOME/Downloads/realesrgan*macos; then
+  echo "Download macOS release from https://github.com/xinntao/Real-ESRGAN/releases and extract it to $HOME/Downloads"
+  exit 1
+fi
+
+./realesrgan* "$@"
+
+# vim: ft=bash
