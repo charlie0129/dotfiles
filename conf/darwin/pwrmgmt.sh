@@ -24,6 +24,9 @@ confirm "Disable ttyskeepawake" &&
 confirm "Disable proximitywake" &&
     sudo pmset -a proximitywake 0
 
+confirm "Disable tcpkeepalive" &&
+    sudo pmset -a tcpkeepalive 0
+
 confirm "Disable powernap" &&
     sudo pmset -a powernap 0
 
