@@ -30,7 +30,7 @@ M.mason = {
 	ensure_installed = {
 		"clangd",
 		"gopls",
-		"bash-language-server",
+		"shellcheck",
 		"typescript-language-server",
 
 		"pyright",
