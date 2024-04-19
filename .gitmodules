@@ -33,3 +33,8 @@
 	url = ../../NvChad/NvChad.git
 	shallow = true
 	branch = v2.0
+[submodule "dep/simple-term-menu"]
+	path = dep/simple-term-menu
+	url = ../../IngoMeyer441/simple-term-menu.git
+	shallow = true
+	branch = develop

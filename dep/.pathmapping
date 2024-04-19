@@ -18,3 +18,6 @@ awesome-vimrc:$HOME/.vim_runtime
 
 # NvChad
 nvchad:$HOME/.config/nvim
+
+# python lib simple-term-menu
+simple-term-menu:$DOTFILES_ROOT/bin/lib/simple-term-menu
