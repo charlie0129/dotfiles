@@ -37,3 +37,5 @@ alias py2="python2"
 alias py3="python3"
 
 alias k9s="k9s --logoless"
+alias k="kubectl"
+alias kns="kubectl node-shell"

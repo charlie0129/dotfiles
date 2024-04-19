@@ -47,3 +47,8 @@ fi
 if [ -f "$DOTFILES_ROOT/alias/custom.sh" ]; then
     source "$DOTFILES_ROOT/alias/custom.sh"
 fi
+
+# Functions
+if [ -f "$DOTFILES_ROOT/func/common.sh" ]; then
+    source "$DOTFILES_ROOT/func/common.sh"
+fi

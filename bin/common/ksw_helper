@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+
+# kubeconfig switcher
+
+import os
+import sys
+from importlib.machinery import SourceFileLoader
+
+simple_term_menu = SourceFileLoader(
+    "simple_term_menu",
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "lib",
+        "simple-term-menu",
+        "simple_term_menu.py",
+    ),
+).load_module()
+TerminalMenu = simple_term_menu.TerminalMenu
+
+KUBECONFIG_PATH = os.path.expanduser("~/.kube")
+
+
+class Config:
+    def __init__(self, path):
+        self.path = path
+        self.context = ""
+        self.filename = os.path.basename(path)
+        self.server = ""
+        with open(path, "r") as f:
+            for line in f.readlines():
+                if "current-context:" in line:
+                    self.context = line.split(":")[1].strip()
+                if "server:" in line:
+                    self.server = line.split(":", 1)[1].strip()
+
+    def __str__(self):
+        return f"{self.filename}: {self.context}"
+
+
+def to_menu_items(configs: list[Config]) -> list[str]:
+    ret: list[str] = []
+    for i, c in enumerate(configs):
+        ret.append(f"[{i+1}] {c}")
+    return ret
+
+
+def preview(configs: list[Config]):
+    def _preview(instr: str) -> str:
+        conf: Config
+        for c in configs:
+            cin = instr.split(": ")[0]
+            if c.filename == cin:
+                conf = c
+        if conf == None:
+            return "No such config."
+        return (
+            f"File:    {conf.filename}\nContext: {conf.context}\nServer:  {conf.server}"
+        )
+
+    return _preview
+
+
+def main():
+    # List files in KUBECONFIG_PATH, exclude directories
+    files = [
+        os.path.join(KUBECONFIG_PATH, f)
+        for f in os.listdir(KUBECONFIG_PATH)
+        if os.path.isfile(os.path.join(KUBECONFIG_PATH, f))
+    ]
+    files.sort()
+
+    configs: list[Config] = []
+    # Check each file
+    for file in files:
+        with open(file, "r") as f:
+            try:  # some binary files may cause UnicodeDecodeError
+                for line in f.readlines():
+                    if "current-context" in line:
+                        configs.append(Config(file))
+                        break
+            except UnicodeDecodeError:
+                pass
+
+    for i in sys.argv:
+        if i == "-l":
+            print("\n".join([c.path for c in configs]))
+            exit(0)
+
+    if len(configs) == 0:
+        print("No kubeconfig files found.")
+        exit(1)
+
+    # Print all configs
+    term_menu = TerminalMenu(
+        to_menu_items(configs),
+        preview_command=preview(configs),
+        title="Choose a kubeconfig file (use / to filter):",
+    )
+    chosen_idx = term_menu.show()
+    # exit with chosen index
+    sys.exit(chosen_idx + 1)
+
+
+if __name__ == "__main__":
+    main()
