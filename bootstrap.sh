@@ -105,6 +105,7 @@ fix_executable_permissions
 CUSTOM_CONFIGS=(
     alias/custom.sh
     env/custom.sh
+    func/custom.sh
     custom-omz-plugins.sh
 )
 if command -v git >/dev/null 2>&1; then
