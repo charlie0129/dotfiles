@@ -48,7 +48,18 @@ if [ -f "$DOTFILES_ROOT/alias/custom.sh" ]; then
     source "$DOTFILES_ROOT/alias/custom.sh"
 fi
 
-# Functions
+# Source functions in this dotfiles repo
+# Note that what sourced first will actually have lower priority.
+# So custom function definitions have a priority like this: custom > os-specific > common
+# Load common functions
 if [ -f "$DOTFILES_ROOT/func/common.sh" ]; then
     source "$DOTFILES_ROOT/func/common.sh"
+fi
+# OS specific functions
+if [ -f "$DOTFILES_ROOT/alias/${OS}.sh" ]; then
+    source "$DOTFILES_ROOT/alias/${OS}.sh"
+fi
+# Custom functions always have higher priority
+if [ -f "$DOTFILES_ROOT/alias/custom.sh" ]; then
+    source "$DOTFILES_ROOT/alias/custom.sh"
 fi
