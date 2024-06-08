@@ -98,6 +98,9 @@ def main():
         title="Choose a kubeconfig file (use / to filter):",
     )
     chosen_idx = term_menu.show()
+    if not chosen_idx:
+        chosen_idx = 0
+        print("You have not chosen any kubeconfig file, using the first one.")
     # exit with chosen index
     sys.exit(chosen_idx + 1)
 
