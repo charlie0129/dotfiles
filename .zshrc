@@ -33,22 +33,7 @@ source $ZSH/oh-my-zsh.sh
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # Source alias in this dotfiles repo
-# Note that what sourced first will actually have lower priority.
-# So custom alias definitions have a priority like this: custom > os-specific > common
-# Load common alias
-if [ -f "$DOTFILES_ROOT/alias/common.sh" ]; then
-    source "$DOTFILES_ROOT/alias/common.sh"
-fi
-# OS specific alias
-if [ -f "$DOTFILES_ROOT/alias/${OS}.sh" ]; then
-    source "$DOTFILES_ROOT/alias/${OS}.sh"
-fi
-# Custom alias always have higher priority
-if [ -f "$DOTFILES_ROOT/alias/custom.sh" ]; then
-    source "$DOTFILES_ROOT/alias/custom.sh"
-fi
+__source alias
 
-# Functions
-if [ -f "$DOTFILES_ROOT/func/common.sh" ]; then
-    source "$DOTFILES_ROOT/func/common.sh"
-fi
+# Source functions in this dotfiles repo
+__source func
