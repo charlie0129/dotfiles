@@ -85,6 +85,7 @@ export EDITOR="vim"
 
 # Setup Go proxy in China
 export GOPROXY=https://goproxy.cn,direct
+export GOPRIVATE=dev.aminer.cn/*
 
 # Local proxy. Will be used in aliases like setproxy.
 # To override it, set the same variable in custom.sh

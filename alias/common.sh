@@ -39,3 +39,11 @@ alias py3="python3"
 alias k9s="k9s --logoless"
 alias k="kubectl"
 alias kns="kubectl node-shell"
+
+if type lsd > /dev/null; then
+    alias lsd='lsd --icon never'
+    alias ls='lsd'
+    alias la='lsd -la'
+    alias ll='lsd -l'
+    alias l='lsd -la'
+fi
