@@ -13,14 +13,14 @@ PATH_BEFORE=(
     $HOME/.cargo/bin
     # Bun bin
     $HOME/.bun/bin
+    # Manually installed Go toolchain, if any
+    /usr/local/go/bin
+    # Manually installed Zig toolchain, if any
+    /usr/local/zig
 )
 
 # This list is appended after PATH
 PATH_AFTER=(
-    # Go toolchain
-    /usr/local/go/bin
-    # Zig toolchain
-    /usr/local/zig
 )
 
 # Apply changes to PATH
@@ -45,7 +45,6 @@ DISABLE_AUTO_UPDATE="true"
 # Uncomment the following line to use hyphen-insensitive completion.
 # Case-sensitive completion must be off. _ and - will be interchangeable.
 # HYPHEN_INSENSITIVE="true"
-
 
 # Uncomment the following line to enable command auto-correction.
 # ENABLE_CORRECTION="true"
@@ -84,9 +83,10 @@ export EDITOR="vim"
 # export ARCHFLAGS="-arch x86_64"
 
 # Setup Go proxy in China
-export GOPROXY=https://goproxy.cn,direct
-export GOPRIVATE=dev.aminer.cn/*
+export GOPROXY="https://goproxy.cn,direct"
+export GOPRIVATE="dev.aminer.cn/*"
 
 # Local proxy. Will be used in aliases like setproxy.
-# To override it, set the same variable in custom.sh
+# To change it without being tracked by git,
+# export the same variable in env/custom.sh to override.
 export PROXY_ADDR="http://127.0.0.1:30000"
