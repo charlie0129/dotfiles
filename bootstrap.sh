@@ -99,7 +99,7 @@ cd dep && link_files && cd "$DOTFILES_ROOT"
 cd "$DOTFILES_ROOT" && link_files && cd "$DOTFILES_ROOT"
 
 # Add +x permissions to all executables
-fix_executable_permissions
+bash bin/fix-permission
 
 # If git is installed, skip tracking custom configs
 CUSTOM_CONFIGS=(
