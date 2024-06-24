@@ -1,0 +1,5 @@
+#!/bin/bash
+
+for i in $(grep -Rl -e '^#!/' bin | xargs); do
+    chmod +x "$i"
+done

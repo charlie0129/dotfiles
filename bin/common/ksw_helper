@@ -47,7 +47,7 @@ def to_menu_items(configs: list[Config]) -> list[str]:
 
 def preview(configs: list[Config]):
     def _preview(instr: str) -> str:
-        conf: Config
+        conf: Config = None
         for c in configs:
             cin = instr.split(": ")[0]
             if c.filename == cin:

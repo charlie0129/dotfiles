@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+if [ -z "$1" ]; then
+    echo "Usage: nix-search <package>"
+    echo "If you have nix-search-cli installed, you can pass args to it: nix-search --name python"
+    exit 1
+fi
+
+# If we have a flag, pass it through to nix search,
+# which searches by name, description, installed programs,
+# version, or other metadata using internet connection.
+# See https://github.com/peterldowns/nix-search-cli
+if [[ "$1" = -* ]]; then
+    nix-search-cli "$@"
+    exit
+fi
+
+# Otherwise, search locally.
+#   - searches for names only, instead of descriptions
+#   - exclude xxxPackages sub packages
+nix search --offline nixpkgs "$OS\\.[a-z-]*$1" 2>/dev/null |
+    grep "^\\*" |
+    sed "s/.*$OS\\.//" |
+    grep -v "Packages\." |
+    sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' |
+    grep --color=auto "$1"
