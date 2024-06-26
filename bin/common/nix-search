@@ -13,6 +13,12 @@ fi
 # version, or other metadata using internet connection.
 # See https://github.com/peterldowns/nix-search-cli
 if [[ "$1" = -* ]]; then
+    # make sure nix-search-cli is installed
+    if ! command -v nix-search-cli &>/dev/null; then
+        echo "You discovered a new feature! But nix-search-cli is not installed."
+        echo "Please install it from https://github.com/peterldowns/nix-search-cli"
+        exit 1
+    fi
     nix-search-cli "$@"
     exit
 fi
