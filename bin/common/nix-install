@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
-if [ -z "$1" ]; then
-    echo "Usage: nix-install <package>"
+if [[ "$#" -lt 1 ]]; then
+    echo "Usage: nix-install <package...>"
     exit 1
 fi
 
-nix profile install nixpkgs#"$1"
+# append "nixpkgs#" to each package name
+packages=""
+for i in "${@:1}"; do
+    packages+="nixpkgs#$i "
+done
+
+# double quote is intentionally omitted to allow multiple packages
+nix profile install $packages

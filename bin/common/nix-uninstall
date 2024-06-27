@@ -5,4 +5,5 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-nix profile remove "$1"
+# double quote is intentionally omitted to allow multiple packages
+nix profile remove ${@:1}
