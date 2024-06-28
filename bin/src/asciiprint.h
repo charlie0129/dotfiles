@@ -7,6 +7,7 @@
 #define GREEN "\033[32m"
 #define YELLOW "\033[33m"
 #define NCOLOR "\033[0m"
+#define INDENT "        "
 
 const char *ascii_control_char_map[] = {
     COLOR "\\0" NCOLOR,   COLOR "<SOH>" NCOLOR, COLOR "<STX>" NCOLOR,
@@ -79,6 +80,9 @@ void env_print(const char *str) {
       fputs(NCOLOR, stdout);
       fputs("\033[2m", stdout);
       putchar('=');
+      if (is_path_like) {
+        fputs("\n" INDENT, stdout);
+      }
       fputs(NCOLOR, stdout);
       break;
     }
@@ -91,7 +95,7 @@ void env_print(const char *str) {
   }
 
   p++;
-  
+
   fputs(YELLOW, stdout);
   while (*p) {
     if (is_special_char(*p)) {
@@ -101,6 +105,7 @@ void env_print(const char *str) {
       fputs("\033[2m", stdout);
       putchar(*p);
       fputs(NCOLOR, stdout);
+      fputs("\n" INDENT, stdout);
       fputs(YELLOW, stdout);
     } else {
       putchar(*p);
@@ -108,7 +113,6 @@ void env_print(const char *str) {
     p++;
   }
   fputs(NCOLOR, stdout);
-
 
   fputs(YELLOW, stdout);
   putchar('"');
