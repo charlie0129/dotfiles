@@ -2,6 +2,14 @@
 
 pkgs=($(nix profile list | grep Name | awk '{print $2}' | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g'))
 
-for i in "${!pkgs[@]}"; do
-    printf "%3s: %s\n" "$(($i+1))" "${pkgs[$i]}"
-done
+is_terminal() {
+    [ -t 1 ]
+}
+
+if is_terminal; then
+    for i in "${!pkgs[@]}"; do
+        printf "%3s: %s\n" "$(($i + 1))" "${pkgs[$i]}"
+    done
+else
+    echo ${pkgs[@]}
+fi
