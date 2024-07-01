@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+if [[ "$#" -lt 1 ]]; then
+    echo "Usage: nix-shell <package...>"
+    exit 1
+fi
+
+# append "nixpkgs#" to each package name
+packages=""
+for i in "${@:1}"; do
+    packages+="nixpkgs#$i "
+done
+
+# double quote is intentionally omitted to allow multiple packages
+nix shell install $packages
