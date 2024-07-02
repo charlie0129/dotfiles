@@ -13,13 +13,13 @@ fi
 # version, or other metadata using internet connection.
 # See https://github.com/peterldowns/nix-search-cli
 if [[ "$1" = -* ]]; then
-    # make sure nix-search-cli is installed
-    if ! command -v nix-search-cli &>/dev/null; then
-        echo "You discovered a new feature! But nix-search-cli is not installed."
+    # make sure nix-search is installed
+    if ! command -v nix-search &>/dev/null; then
+        echo "You discovered a hidden feature! But nix-search is not installed."
         echo "Please install it from https://github.com/peterldowns/nix-search-cli"
         exit 1
     fi
-    nix-search-cli "$@"
+    nix-search "$@"
     exit
 fi
 
@@ -31,4 +31,4 @@ nix search --offline nixpkgs "$OS\\.[a-z-]*$1" 2>/dev/null |
     sed "s/.*$OS\\.//" |
     grep -v "Packages\." |
     sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' |
-    grep --color=auto "$1"
+    grep --color=auto -i "$1"
