@@ -37,11 +37,12 @@ class Config:
     def __str__(self):
         return f"{self.filename}: {self.context}"
 
+keys="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 def to_menu_items(configs: list[Config]) -> list[str]:
     ret: list[str] = []
     for i, c in enumerate(configs):
-        ret.append(f"[{i+1}] {c}")
+        ret.append(f"[{keys[i]}] {c}")
     return ret
 
 
@@ -99,8 +100,18 @@ def main():
     )
     chosen_idx = term_menu.show()
     if not chosen_idx:
-        chosen_idx = 0
-        print("You have not chosen any kubeconfig file, using the first one.")
+        found = False
+        # find the config named config
+        for i, c in enumerate(configs):
+            if c.filename == "config":
+                chosen_idx = i
+                found = True
+                break
+        if not found:
+            chosen_idx = 0
+            print("You have not chosen any kubeconfig file, using the first one.")
+        else:
+            print("You have not chosen any kubeconfig file, using the default one.")
     # exit with chosen index
     sys.exit(chosen_idx + 1)
 
