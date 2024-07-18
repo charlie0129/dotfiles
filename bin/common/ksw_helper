@@ -99,7 +99,7 @@ def main():
         title="Choose a kubeconfig file (use / to filter):",
     )
     chosen_idx = term_menu.show()
-    if not chosen_idx:
+    if chosen_idx == None:
         found = False
         # find the config named config
         for i, c in enumerate(configs):
