@@ -6,5 +6,7 @@ ksw() {
     local exitstatus=$?
     local chosenconfig="${config_list[$exitstatus]}"
     export "KUBECONFIG=$chosenconfig"
-    echo "- export KUBECONFIG=$chosenconfig"
+    local dir=$(dirname $chosenconfig)
+    local filename=$(basename $chosenconfig)
+    echo -e "- export KUBECONFIG=$dir/\033[32;1m$filename\033[0m"
 }

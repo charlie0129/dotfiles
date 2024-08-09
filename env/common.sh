@@ -77,7 +77,13 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 export LANG=en_US.UTF-8
 
 # Preferred editor for local and remote sessions
-export EDITOR="vim"
+# try nvim, vim, vi, nano in order
+for editor in nvim vim vi nano; do
+    if command -v $editor >/dev/null; then
+        export EDITOR=$editor
+        break
+    fi
+done
 
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
