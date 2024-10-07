@@ -38,6 +38,10 @@ alias py3="python3"
 
 alias k9s="k9s --logoless"
 alias k="kubectl"
+alias kg="kubectl get"
+alias kex="kubectl explain"
+
+alias kpf="kubectl port-forward"
 alias kns="kubectl node-shell"
 
 if type lsd > /dev/null; then
@@ -47,3 +51,5 @@ if type lsd > /dev/null; then
     alias ll='lsd -l'
     alias l='lsd -la'
 fi
+
+alias zj="zellj"
