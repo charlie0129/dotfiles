@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 
+# dir
+alias -g ...='../..'
+alias -g ....='../../..'
+alias -g .....='../../../..'
+alias -g ......='../../../../..'
+
+# ls
+if type lsd > /dev/null; then
+    alias lsd='lsd --icon never'
+    alias ls='lsd'
+fi
+alias l='ls -lah'
+alias ll='ls -lh'
+alias la='ls -lAh'
+alias lsa='ls -lah'
+
 # htop with sudo as default
 alias htop='sudo htop'
 
@@ -54,12 +70,6 @@ alias kex="kubectl explain"
 alias kpf="kubectl port-forward"
 alias kns="kubectl node-shell"
 
-if type lsd > /dev/null; then
-    alias lsd='lsd --icon never'
-    alias ls='lsd'
-    alias la='lsd -la'
-    alias ll='lsd -l'
-    alias l='lsd -la'
-fi
-
 alias zj="zellij"
+
+alias tree='tree -a -I .git'
