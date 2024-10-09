@@ -35,3 +35,6 @@ export PATH
 export HOMEBREW_NO_AUTO_UPDATE=true
 # Set up mirror if needed
 # export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles
+# If you want to fake the Homebrew-detected OS version, uncomment the following line.
+# This is useful if you are using a unsupported macOS version and still want to use Homebrew bottles.
+# export HOMEBREW_FAKE_MACOS=13.0
