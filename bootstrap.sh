@@ -118,4 +118,4 @@ if [ "${SHELL}" != "$(which zsh)" ]; then
 fi
 
 echo -e "Bootstrap complete! ${COLOR_BOLD}Please DO check the output above for any errors.${COLOR_RESET}"
-echo -e "Run '${COLOR_BOLD}source ~/.zshrc${COLOR_RESET}' for the changes to take effect."
+echo -e "Log out and back in for the changes to take effect."
