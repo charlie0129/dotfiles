@@ -2,6 +2,7 @@
 # Use this variable instead of hard-coded ~/dotfiles.
 export DOTFILES_ROOT="$(dirname $(readlink ~/.zshrc))"
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+export LANG=en_US.UTF-8
 
 # Source helper. This is used to load env/alias/func definitions in this repo in the correct order.
 __source() {

@@ -52,4 +52,4 @@ if type lsd > /dev/null; then
     alias l='lsd -la'
 fi
 
-alias zj="zellj"
+alias zj="zellij"
