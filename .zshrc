@@ -151,3 +151,9 @@ setopt glob_dots    # no special treatment for file names with a leading dot
 setopt no_auto_menu # require an extra TAB press to open the completion menu
 
 ############################ END Shell Opts ############################
+
+# Sometimes $ZSH_CACHE_DIR/completions may not exist and completion plugins will cause an error
+# when trying to save completion cache into it. Create it if not exists.
+if [ ! -d "$ZSH_CACHE_DIR/completions" ]; then
+    mkdir -p "$ZSH_CACHE_DIR/completions"
+fi
