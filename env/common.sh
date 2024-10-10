@@ -27,6 +27,12 @@ PATH_AFTER=(
 PATH="$(IFS=:; echo "${PATH_BEFORE[*]}"):$PATH:$(IFS=:; echo "${PATH_AFTER[*]}")"
 export PATH
 
+# ========== NIX ==========
+
+if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+    . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+fi
+
 # ========== MISC ==========
 
 export LANG=en_US.UTF-8
