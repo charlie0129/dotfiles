@@ -127,6 +127,11 @@ default_plugins=(
     extract
     z
     colored-man-pages
+    docker
+    docker-compose
+    golang
+    kubectl
+    screen
 )
 
 # Load custom plugins
