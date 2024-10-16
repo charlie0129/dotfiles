@@ -126,7 +126,6 @@ default_plugins=(
     git
     extract
     z
-    colored-man-pages
     docker
     docker-compose
     golang

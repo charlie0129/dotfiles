@@ -37,6 +37,12 @@ if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
     . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
 fi
 
+# ========== MAN ==========
+
+# Colored man pages
+export MANPAGER="less --RAW-CONTROL-CHARS --use-color --color=d+g --color=u+y"
+export MANROFFOPT="-c"
+
 # ========== MISC ==========
 
 export LANG=en_US.UTF-8
