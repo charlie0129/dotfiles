@@ -9,7 +9,7 @@ alias -g ......='../../../../..'
 # ls
 if type lsd > /dev/null; then
     alias lsd='lsd --icon never'
-    alias ls='lsd'
+    alias ls='lsd --group-directories-first'
 fi
 alias l='ls -lah'
 alias ll='ls -lh'
