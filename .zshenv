@@ -31,6 +31,24 @@ umask o-w
 if [ ! -e "$Z4H"/z4h.zsh ]; then
   mkdir -p -- "$Z4H" || return
   >&2 printf '\033[33mz4h\033[0m: fetching \033[4mz4h.zsh\033[0m\n'
+  echo "We need to download some files from the internet."
+  if read -q "choice?Do you need to use a proxy [y/n]? "; then
+      echo
+      echo "Just fill some information about your proxy server..."
+      echo "It's just plain old proxy-related environment variables."
+      read "http_proxy?  - http_proxy="
+      export http_proxy
+      export HTTP_PROXY=$http_proxy
+      read "https_proxy?  - https_proxy="
+      export https_proxy
+      export HTTPS_PROXY=$https_proxy
+      read "no_proxy?  - no_proxy="
+      export no_proxy
+      export NO_PROXY=$no_proxy
+  else
+      echo
+      echo "No proxy server will be used."
+  fi
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL -- "$Z4H_URL"/z4h.zsh >"$Z4H"/z4h.zsh.$$ || return
   elif command -v wget >/dev/null 2>&1; then
