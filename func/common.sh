@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Kubernetes SWitcher
 ksw() {
     local config_list=($(ksw_helper -l))
     ksw_helper
@@ -18,7 +19,7 @@ zi() {
         cd "$dir" || return
 }
 
-# mnemonic: [F]ind [P]ath
+# Find Path
 fp() {
     local loc=$(echo $PATH | sed -e $'s/:/\\\n/g' | eval "fzf ${FZF_DEFAULT_OPTS} --header='[find:path]'")
 
@@ -28,7 +29,7 @@ fp() {
     fi
 }
 
-# mnemonic: [K]ill [P]rocess
+# Kill Process
 kp() {
     local pid=$(ps -ef | sed 1d | eval "fzf ${FZF_DEFAULT_OPTS} -m --header='[kill:process]'" | awk '{print $2}')
 
@@ -38,7 +39,7 @@ kp() {
     fi
 }
 
-# mnemonic: [K]ill [S]erver
+# Kill Server
 ks() {
     local pid=$(lsof -Pwni | sed 1d | grep -e LISTEN -e '\*:' | eval "fzf ${FZF_DEFAULT_OPTS} -m --header='[kill:tcp]'" | awk '{print $2}')
 
