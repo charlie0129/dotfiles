@@ -11,6 +11,13 @@ ksw() {
     echo -e "- export KUBECONFIG=$dir/\033[32;1m$filename\033[0m"
 }
 
+# Z interactive: interactive directory jump
+zi() {
+    local dir
+    dir=$(z -l | awk '{print $2}' | fzf --query="$LBUFFER" --tac --no-sort --select-1 --exit-0) &&
+        cd "$dir" || return
+}
+
 # mnemonic: [F]ind [P]ath
 fp() {
     local loc=$(echo $PATH | sed -e $'s/:/\\\n/g' | eval "fzf ${FZF_DEFAULT_OPTS} --header='[find:path]'")
