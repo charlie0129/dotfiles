@@ -35,13 +35,13 @@ if [ ! -e "$Z4H"/z4h.zsh ]; then
   if read -q "choice?Do you need to use a proxy [y/n]? "; then
       echo
       echo "Just fill some plain old proxy-related environment variables..."
-      read "http_proxy?- \033[1mhttp_proxy\033[0m="
+      read "http_proxy?- http_proxy="
       export http_proxy
       export HTTP_PROXY=$http_proxy
-      read "https_proxy?- \033[1mhttps_proxy\033[0m="
+      read "https_proxy?- https_proxy="
       export https_proxy
       export HTTPS_PROXY=$https_proxy
-      read "no_proxy?- \033[1mno_proxy\033[0m="
+      read "no_proxy?- no_proxy="
       export no_proxy
       export NO_PROXY=$no_proxy
   else
