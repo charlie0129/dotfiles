@@ -4,8 +4,8 @@
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+if [[ -r "$Z4H/cache/powerlevel10k/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "$Z4H/cache/powerlevel10k/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
 ############################ BEGIN zsh4humans .zshrc ############################
@@ -30,6 +30,9 @@ zstyle ':z4h:' start-tmux no
 
 # Mark up shell's output with semantic information.
 zstyle ':z4h:' term-shell-integration 'yes'
+
+# No, I don't Homebrew integration. The searching takes forever.
+zstyle :z4h:homebrew-command-not-found channel none
 
 # Right-arrow key accepts one character ('partial-accept') from
 # command autosuggestions or the whole thing ('accept')?
