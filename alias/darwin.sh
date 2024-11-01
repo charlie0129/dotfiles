@@ -24,3 +24,7 @@ alias asitop="sudo asitop --color 7"
 # common mistakes
 alias open.="open ."
 alias open,="open ."
+
+# macOS iproute2mac does not support --color=auto
+# so we need to override the one from common.sh
+alias ip="ip"
