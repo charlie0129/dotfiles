@@ -19,7 +19,7 @@ alias lsa='ls -lah'
 # htop with sudo as default
 alias htop='sudo htop'
 
-# Shallow git clone
+# Git
 alias gcl1='git clone --recurse-submodules --shallow-submodules --depth=1'
 
 # Quick update dotfiles
@@ -62,14 +62,25 @@ alias py314="python3.14"
 alias py315="python3.15"
 alias py316="python3.16"
 
+# Kubernetes
 alias k9s="k9s --logoless"
 alias k="kubectl"
 alias kg="kubectl get"
 alias kex="kubectl explain"
-
 alias kpf="kubectl port-forward"
 alias kns="kubectl node-shell"
 
 alias zj="zellij"
 
 alias tree='tree -a -I .git'
+
+alias diff="diff --color=auto"
+
+# iproute2 commands
+# Why is this in common.sh? Does iproute2 linux-only?
+# Because we have iproute2mac installed in this dotfile, so macOS can also use ip commands.
+alias ip="ip --color=auto"
+alias ip6="ip -6"
+alias ipa="ip a"
+alias ipl="ip l"
+alias ipr="ip r"

@@ -18,3 +18,8 @@
 	url = ../../IngoMeyer441/simple-term-menu.git
 	shallow = true
 	branch = develop
+[submodule "dep/iproute2mac"]
+	path = dep/iproute2mac
+	url = ../../brona/iproute2mac.git
+	shallow = true
+	branch = master
