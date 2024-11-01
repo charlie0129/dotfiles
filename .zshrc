@@ -136,8 +136,6 @@ default_plugins=(
     git
     extract
     z
-    docker
-    docker-compose
 )
 
 # Load custom plugins
