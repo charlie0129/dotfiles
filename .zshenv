@@ -46,7 +46,7 @@ if [ ! -e "$Z4H"/z4h.zsh ]; then
       export NO_PROXY=$no_proxy
   else
       echo
-      echo "No proxy server will be used."
+      echo "No proxy setting will be modified."
   fi
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL -- "$Z4H_URL"/z4h.zsh >"$Z4H"/z4h.zsh.$$ || return
