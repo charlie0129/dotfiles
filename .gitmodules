@@ -1,8 +1,3 @@
-[submodule "dep/ohmytmux"]
-	path = dep/ohmytmux
-	url = ../../gpakosz/.tmux.git
-	shallow = true
-	branch = master
 [submodule "dep/awesome-vimrc"]
 	path = dep/awesome-vimrc
 	url = ../../amix/vimrc.git

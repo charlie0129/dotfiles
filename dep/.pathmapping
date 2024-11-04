@@ -1,6 +1,3 @@
-# oh-my-tmux
-ohmytmux:$HOME/.tmux
-
 # awesome-vimrc
 awesome-vimrc:$HOME/.vim_runtime
 
