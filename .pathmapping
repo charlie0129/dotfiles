@@ -7,6 +7,7 @@
 # powerlevel10k config
 .p10k.zsh:$HOME/.p10k.zsh
 .p10k-8color.zsh:$HOME/.p10k-8color.zsh
+.p10k-ascii-8color.zsh:$HOME/.p10k-ascii-8color.zsh
 
 # xmodmap config
 .Xmodmap:$HOME/.Xmodmap
