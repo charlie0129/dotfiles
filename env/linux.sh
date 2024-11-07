@@ -8,6 +8,7 @@ PATH_BEFORE=(
 
 # This list is appended after PATH
 PATH_AFTER=(
+    /usr/local/cuda/bin
 )
 
 PATH="$(IFS=:; echo "${PATH_BEFORE[*]}"):$PATH:$(IFS=:; echo "${PATH_AFTER[*]}")"
