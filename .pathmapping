@@ -12,10 +12,6 @@
 # xmodmap config
 .Xmodmap:$HOME/.Xmodmap
 
-# vim config
-.vimrc.local:$DOTFILES_ROOT/dep/awesome-vimrc/my_configs.vim
-.vimrc:$HOME/.vimrc
-
 # ideavim config
 .ideavimrc:$HOME/.ideavimrc
 
