@@ -33,7 +33,7 @@ class Config:
     def __str__(self):
         return f"{self.filename}: {self.context}"
 
-keys="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+keys="0123456789abcdefghijklmnoprstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 def to_menu_items(configs: list[Config]) -> list[str]:
     ret: list[str] = []
