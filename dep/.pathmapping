@@ -1,11 +1,2 @@
-# awesome-vimrc
-awesome-vimrc:$HOME/.vim_runtime
-
 # NvChad
 nvchad:$HOME/.config/nvim
-
-# python lib simple-term-menu
-simple-term-menu:$DOTFILES_ROOT/bin/lib/simple-term-menu
-
-# python lib iproute2mac
-iproute2mac:$DOTFILES_ROOT/bin/lib/iproute2mac

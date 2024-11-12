@@ -4,19 +4,15 @@
 
 import os
 import sys
-from importlib.machinery import SourceFileLoader
-
-simple_term_menu = SourceFileLoader(
-    "simple_term_menu",
-    os.path.join(
+# caution: path[0] is reserved for script path (or '' in REPL)
+sys.path.insert(1, os.path.join(
         os.path.dirname(__file__),
         "..",
         "lib",
         "simple-term-menu",
-        "simple_term_menu.py",
-    ),
-).load_module()
-TerminalMenu = simple_term_menu.TerminalMenu
+    ))
+
+from simple_term_menu import TerminalMenu
 
 KUBECONFIG_PATH = os.path.expanduser("~/.kube")
 
