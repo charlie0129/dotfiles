@@ -3,13 +3,3 @@
 	url = ../../NvChad/NvChad.git
 	shallow = true
 	branch = v2.0
-[submodule "dep/simple-term-menu"]
-	path = dep/simple-term-menu
-	url = ../../IngoMeyer441/simple-term-menu.git
-	shallow = true
-	branch = develop
-[submodule "dep/iproute2mac"]
-	path = dep/iproute2mac
-	url = ../../brona/iproute2mac.git
-	shallow = true
-	branch = master
