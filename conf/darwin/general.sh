@@ -8,7 +8,7 @@ source "../../bin/util/confirm.sh"
 echo "===== General Configurations ====="
 
 confirm "Enable verbose booting, disable darkwake, keep symbols on crash" &&
-    sudo nvram boot-args="-v darkwake=0 keepsyms=1"
+    sudo nvram boot-args="-v darkwake=0 keepsyms=1 -arm64e_preview_abi"
 
 confirm "Disable auto boot" &&
     sudo nvram AutoBoot="%00"

@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+
+config="yabai -m config"
+rule="yabai -m rule"
+
+# Configure scripting addition
+yabai -m signal --add event=dock_did_restart action="sudo yabai --load-sa"
+# For this to work you must configure sudo such that
+# it will be able to run the command without password.
+# Oneliner:
+#   echo "$(whoami) ALL=(root) NOPASSWD: sha256:$(shasum -a 256 $(which yabai) | cut -d " " -f 1) $(which yabai) --load-sa" | sudo tee /private/etc/sudoers.d/yabai
+sudo yabai --load-sa
+
+# default layout (can be bsp, stack or float)
+$config layout float
+
+$config mouse_follows_focus on
+
+# <opt> as the modifier for clicking and dragging with mouse
+$config mouse_modifier alt
+# set modifier (<opt>) + left-click drag to move window
+$config mouse_action1 move
+# set modifier (<opt>) + right-click drag to resize window
+$config mouse_action2 resize
+
+# Disable specific apps from being managed with yabai.
+$rule --add app="^System Settings$" manage=off
+$rule --add app="^Calculator$" manage=off
+$rule --add app="^Karabiner-Elements$" manage=off
