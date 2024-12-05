@@ -1,47 +1,57 @@
-# Maximize a window
-cmd + shift - m : yabai -m window --toggle windowed-fullscreen;
+# # Maximize a window
+# cmd + shift - m : yabai -m window --toggle windowed-fullscreen;
 
-# Focus previous space
-alt - tab : yabai -m space --focus recent;
+# # Focus previous space
+# alt - tab : yabai -m space --focus recent;
 
-# Move window to recent display and focus it.
-# sleep is necessary to let the mouse follow the newly focused window, otherwise it will fail to follow (for some reason).
-hyper - d : wid="$(yabai -m query --windows --window | jq .id)"; \
-            yabai -m window "$wid" --display recent && \
-            sleep 0.3 && \
-            yabai -m window --focus "$wid";
+# # Move window to recent display and focus it.
+# # sleep is necessary to let the mouse follow the newly focused window, otherwise it will fail to follow (for some reason).
+# hyper - d : wid="$(yabai -m query --windows --window | jq .id)"; \
+#             yabai -m window "$wid" --display recent && \
+#             sleep 0.3 && \
+#             yabai -m window --focus "$wid";
 
-# Resize window.
-alt - h : yabai -m window --resize bottom_right:-50:0;
-alt - j : yabai -m window --resize bottom_right:0:50;
-alt - k : yabai -m window --resize bottom_right:0:-50;
-alt - l : yabai -m window --resize bottom_right:50:0;
+# # Resize window.
+# alt - h : yabai -m window --resize bottom_right:-50:0;
+# alt - j : yabai -m window --resize bottom_right:0:50;
+# alt - k : yabai -m window --resize bottom_right:0:-50;
+# alt - l : yabai -m window --resize bottom_right:50:0;
 
-# Move window to space # and focus space #
-alt + shift - 1 : yabai -m window --space 1 && yabai -m space --focus 1;
-alt + shift - 2 : yabai -m window --space 2 && yabai -m space --focus 2;
-alt + shift - 3 : yabai -m window --space 3 && yabai -m space --focus 3;
-alt + shift - 4 : yabai -m window --space 4 && yabai -m space --focus 4;
-alt + shift - 5 : yabai -m window --space 5 && yabai -m space --focus 5;
-alt + shift - 6 : yabai -m window --space 6 && yabai -m space --focus 6;
-alt + shift - 7 : yabai -m window --space 7 && yabai -m space --focus 7;
-alt + shift - 8 : yabai -m window --space 8 && yabai -m space --focus 8;
-alt + shift - 9 : yabai -m window --space 9 && yabai -m space --focus 9;
+# # Move window to space # and focus space #
+# alt + shift - 1 : yabai -m window --space 1 && yabai -m space --focus 1;
+# alt + shift - 2 : yabai -m window --space 2 && yabai -m space --focus 2;
+# alt + shift - 3 : yabai -m window --space 3 && yabai -m space --focus 3;
+# alt + shift - 4 : yabai -m window --space 4 && yabai -m space --focus 4;
+# alt + shift - 5 : yabai -m window --space 5 && yabai -m space --focus 5;
+# alt + shift - 6 : yabai -m window --space 6 && yabai -m space --focus 6;
+# alt + shift - 7 : yabai -m window --space 7 && yabai -m space --focus 7;
+# alt + shift - 8 : yabai -m window --space 8 && yabai -m space --focus 8;
+# alt + shift - 9 : yabai -m window --space 9 && yabai -m space --focus 9;
 
-# Focus space #. Provides a quick way to switch to a space without the macOS animation.
-alt - 1 : yabai -m space --focus 1;
-alt - 2 : yabai -m space --focus 2;
-alt - 3 : yabai -m space --focus 3;
-alt - 4 : yabai -m space --focus 4;
-alt - 5 : yabai -m space --focus 5;
-alt - 6 : yabai -m space --focus 6;
-alt - 7 : yabai -m space --focus 7;
-alt - 8 : yabai -m space --focus 8;
-alt - 9 : yabai -m space --focus 9;
+# # Focus space #. Provides a quick way to switch to a space without the macOS animation.
+# alt - 1 : yabai -m space --focus 1;
+# alt - 2 : yabai -m space --focus 2;
+# alt - 3 : yabai -m space --focus 3;
+# alt - 4 : yabai -m space --focus 4;
+# alt - 5 : yabai -m space --focus 5;
+# alt - 6 : yabai -m space --focus 6;
+# alt - 7 : yabai -m space --focus 7;
+# alt - 8 : yabai -m space --focus 8;
+# alt - 9 : yabai -m space --focus 9;
 
-# Sticky window
-ctrl + alt - s : yabai -m window --toggle sticky;
+# # Sticky window
+# ctrl + alt - s : yabai -m window --toggle sticky;
 
 # Quick Application launches
 hyper - t: open -a "iTerm";
 hyper - c: open -a "Google Chrome";
+hyper - e: open -a "CotEditor";
+hyper - s: open -a "Safari";
+hyper - l: open -a "Lens";
+hyper - w: open -a "WeChat";
+hyper - q: open -a "QQ";
+hyper - f: open -a "Lark";
+hyper - g: open -a "GoLand";
+# hyper + v is occupied by other programs.s
+hyper - m: open -a "MongoDB Compass";
+hyper - p: open -a "Preview";

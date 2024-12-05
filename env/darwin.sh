@@ -33,6 +33,8 @@ export PATH
 # HomeBrew (kept for reference)
 # No I don't want auto update, go away.
 export HOMEBREW_NO_AUTO_UPDATE=true
+# No attestations. It slows down my install.
+export HOMEBREW_NO_VERIFY_ATTESTATIONS=1
 # Set up mirror if needed
 # export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles
 # If you want to fake the Homebrew-detected OS version, uncomment the following line.

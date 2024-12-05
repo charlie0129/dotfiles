@@ -156,8 +156,36 @@ setopt no_auto_menu # require an extra TAB press to open the completion menu
 
 ############################ END Shell Opts ############################
 
+############################ BEGIN Completions ############################
+
 # Sometimes $ZSH_CACHE_DIR/completions may not exist and completion plugins will cause an error
 # when trying to save completion cache into it. Create it if not exists.
 if [ ! -d "$ZSH_CACHE_DIR/completions" ]; then
     mkdir -p "$ZSH_CACHE_DIR/completions"
 fi
+
+# Load completions for Homebrew-installed applications on darwin.
+# if [[ "$OS" == "darwin" ]] && [ -d "/opt/homebrew/share/zsh/site-functions" ]; then
+#     for i in $(find /opt/homebrew/share/zsh/site-functions -mindepth 1 -maxdepth 1 -print); do
+#         source "$i"
+#     done
+# fi
+
+# check for existence of the directory
+if [ ! -d "$DOTFILES_ROOT/completions" ]; then
+    echo "Directory $DOTFILES_ROOT/completions does not exist." >&2
+fi
+# Note that what sourced first will actually have lower priority.
+# So custom env definitions have a priority like this: custom > os-specific > common
+local types=(
+    common
+    $OS
+    custom # Custom definition always have higher priority
+)
+for type in "${types[@]}"; do
+    for i in $(find "$DOTFILES_ROOT/completions/$type" -type f -name '*.zsh'); do
+        z4h source "$i"
+    done
+done
+
+############################ END Completions ############################
