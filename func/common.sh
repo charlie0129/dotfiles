@@ -48,3 +48,25 @@ ks() {
         ks
     fi
 }
+
+# Git Clone repository into a proper directory structure.
+# For example, `git_clone https://github.com/charlie0129/dotfiles.git` 
+# will clone the repository into `~/src/github.com/charlie0129/dotfiles`.
+git_clone() {
+    if [ -z "$1" ]; then
+        echo "Usage: git_clone <repo>"
+        return 1
+    fi
+
+    local dir="$1"
+    dir=$(echo "${dir}" | sed 's_^.*://__g')
+    dir=${dir//.git/}
+    echo "Will clone to ~/src/$dir"
+    dir=$(dirname "${dir}")
+
+    local dir="$HOME/src/$dir"
+    mkdir -p "$dir"
+    cd "$dir" || return
+
+    git clone --recurse-submodules "$1"
+}
