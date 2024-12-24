@@ -62,6 +62,11 @@ alias py314="python3.14"
 alias py315="python3.15"
 alias py316="python3.16"
 
+# Alias conda to micromamba if conda is not found.
+if ! type conda > /dev/null; then
+    alias conda="micromamba"
+fi
+
 # Kubernetes
 alias k9s="k9s --logoless"
 alias k="kubectl"
