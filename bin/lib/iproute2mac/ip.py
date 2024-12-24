@@ -78,11 +78,11 @@ def parse_ifconfig(res, af, address):
                     addr["address"] = peer
                 link["addr_info"] = link.get("addr_info", []) + [addr]
             elif re.match(r"^\s+status: ", r):
-                match re.findall(r"status: (\w+)", r)[0]:
-                    case "active":
-                        link["operstate"] = "UP"
-                    case "inactive":
-                        link["operstate"] = "DOWN"
+                status = re.findall(r"status: (\w+)", r)[0]
+                if status == "active":
+                    link["operstate"] = "UP"
+                elif status == "inactive":
+                    link["operstate"] = "DOWN"
 
     if count > 1:
         links.append(link)
