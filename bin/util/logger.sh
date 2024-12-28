@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Usage:
+# Usage: see logger_test.sh for examples.
+#
 # Setting log levels:
 #   `set_log_level <level>` (debug, info, warn, error)
 # Simple logging:
@@ -78,31 +79,64 @@ __datestr() {
     echo -n "${time:0:22}:${time:22:2}"
 }
 
+__need_quotes() {
+    local value="$1"
+    # If any of the following characters are present, we need to quote the value.
+    # [:space:] [:cntrl:] " =
+    [[ "$value" =~ [[:space:]] || "$value" =~ [[:cntrl:]] || "$value" =~ [=\"] ]]
+}
+
 # Escape logfmt special characters
 __logfmt_escape() {
     local value="$1"
     value="${value//\\/\\\\}"   # Escape backslashes
     value="${value//\"/\\\"}"   # Escape double quotes
     value="${value//$'\n'/\\n}" # Replace newline with \n
-    echo -n "$value"
+    value="${value//$'\r'/\\r}" # Replace carriage return with \r
+    value="${value//$'\t'/\\t}" # Replace tab with \t
+    value="${value//$'\v'/\\v}" # Replace vertical tab with \v
+    value="${value//$'\f'/\\f}" # Replace form feed with \f
+    value="${value//$'\b'/\\b}" # Replace backspace with \b
+    value="${value//$'\a'/\\a}" # Replace bell with \a
+    value="${value//$'\e'/\\e}" # Replace escape with \e
+    echo -n "$value" | LC_CTYPE=C tr -dc '[:print:]' # Remove all other control characters
+}
+
+__logfmt_kv_format() {
+    local value="$1"
+    if __need_quotes "$value"; then
+        echo -n "\"$(__logfmt_escape "$value")\""
+    else
+        echo -n "$value"
+    fi
 }
 
 # Print log messages in logfmt format.
-# Example: __logfmt_print <key1> <value1> <key2> <value2> ...
-__logfmt_print() {
-    local log_msg="time=\"$(__datestr)\""
+# Example: logfmt_print <key1> <value1> <key2> <value2> ...
+logfmt_print() {
+    local log_msg=""
     local key=""
 
     for param in "$@"; do
+        if [[ -z "$param" ]]; then
+            continue
+        fi
         if [[ -n "$key" ]]; then
-            log_msg+=" $key=\"$(__logfmt_escape "$param")\""
+            if [[ -n "$log_msg" ]]; then
+                log_msg+=" "
+            fi
+            log_msg+="$(__logfmt_kv_format "$key")=$(__logfmt_kv_format "$param")"
             key=""
             continue
         fi
-        key=$(__logfmt_escape "$param")
+        key="$param"
     done
 
     echo "$log_msg"
+}
+
+logfmt_print_with_timestamp() {
+    logfmt_print time "$(__datestr)" "$@"
 }
 
 debug() {
@@ -110,7 +144,7 @@ debug() {
         return
     fi
 
-    __logfmt_print level debug msg "$@"
+    logfmt_print_with_timestamp level debug msg "$@"
 }
 
 info() {
@@ -121,7 +155,7 @@ info() {
     if [[ -n $__in_terminal ]]; then
         echo -en "$__color_blue"
     fi
-    __logfmt_print level info msg "$@"
+    logfmt_print_with_timestamp level info msg "$@"
     if [[ -n $__in_terminal ]]; then
         echo -en "$__color_reset"
     fi
@@ -135,7 +169,7 @@ warn() {
     if [[ -n $__in_terminal ]]; then
         echo -en "$__color_yellow"
     fi
-    __logfmt_print level warn msg "$@"
+    logfmt_print_with_timestamp level warn msg "$@"
     if [[ -n $__in_terminal ]]; then
         echo -en "$__color_reset"
     fi
@@ -149,7 +183,7 @@ error() {
     if [[ -n $__in_terminal ]]; then
         echo -en "$__color_red"
     fi
-    __logfmt_print level error msg "$@"
+    logfmt_print_with_timestamp level error msg "$@"
     if [[ -n $__in_terminal ]]; then
         echo -en "$__color_reset"
     fi
@@ -159,7 +193,7 @@ fatal() {
     if [[ -n $__in_terminal ]]; then
         echo -en "$__color_red"
     fi
-    __logfmt_print level fatal msg "$@"
+    logfmt_print_with_timestamp level fatal msg "$@"
     if [[ -n $__in_terminal ]]; then
         echo -en "$__color_reset"
     fi
