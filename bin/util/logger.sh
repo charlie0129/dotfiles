@@ -61,8 +61,9 @@ is_error_level_enabled() {
     __is_level_enabled $__LOG_LEVEL_ERROR
 }
 
+__has_tty=""
 if tty -s; then
-    __in_terminal=1
+    __has_tty=1
 fi
 
 __color_reset="\033[0m"
@@ -152,11 +153,11 @@ info() {
         return
     fi
 
-    if [[ -n $__in_terminal ]]; then
+    if [[ -n $__has_tty ]]; then
         echo -en "$__color_blue"
     fi
     logfmt_print_with_timestamp level info msg "$@"
-    if [[ -n $__in_terminal ]]; then
+    if [[ -n $__has_tty ]]; then
         echo -en "$__color_reset"
     fi
 }
@@ -166,11 +167,11 @@ warn() {
         return
     fi
 
-    if [[ -n $__in_terminal ]]; then
+    if [[ -n $__has_tty ]]; then
         echo -en "$__color_yellow"
     fi
     logfmt_print_with_timestamp level warn msg "$@"
-    if [[ -n $__in_terminal ]]; then
+    if [[ -n $__has_tty ]]; then
         echo -en "$__color_reset"
     fi
 }
@@ -180,21 +181,21 @@ error() {
         return
     fi
 
-    if [[ -n $__in_terminal ]]; then
+    if [[ -n $__has_tty ]]; then
         echo -en "$__color_red"
     fi
     logfmt_print_with_timestamp level error msg "$@"
-    if [[ -n $__in_terminal ]]; then
+    if [[ -n $__has_tty ]]; then
         echo -en "$__color_reset"
     fi
 }
 
 fatal() {
-    if [[ -n $__in_terminal ]]; then
+    if [[ -n $__has_tty ]]; then
         echo -en "$__color_red"
     fi
     logfmt_print_with_timestamp level fatal msg "$@"
-    if [[ -n $__in_terminal ]]; then
+    if [[ -n $__has_tty ]]; then
         echo -en "$__color_reset"
     fi
 
