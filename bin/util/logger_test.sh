@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
+set -o errexit
+set -o pipefail
+set -o nounset
+
 source "$(dirname "${BASH_SOURCE}")/logger.sh"
 
 echo "===== Structured Logging ====="
-info "This is an info message with other key values" key1 value1 key2 value2 key3 value3
+info "Structured Logging." pod.metadata.name test-pod somekey "$(echo -e "some\nvalue")" anotherkey "another value"
 
 echo
 echo "=====  Setting log level to debug ====="
