@@ -4,6 +4,8 @@
 #
 # Setting log levels:
 #   `set_log_level <level>` (debug, info, warn, error)
+# Setting logger output:
+#   `set_logger_output <stdout|stderr|1|2|file>`
 # Simple logging:
 #   `<debug|info|warn|error|fatal> <message>`
 # Structured logging:
@@ -61,15 +63,70 @@ is_error_level_enabled() {
     __is_level_enabled $__LOG_LEVEL_ERROR
 }
 
-__has_tty=""
-if tty -s; then
-    __has_tty=1
-fi
+__output_has_tty="" # This decides if we should use tty colors or not.
+
+__check_tty() {
+    if [ -t 1 ]; then
+        __output_has_tty=1
+    else
+        __output_has_tty=""
+    fi
+}
+
+__logger_output="/dev/stderr"
+
+set_logger_output() {
+    case $1 in
+    stdout | stderr)
+        __logger_output="/dev/$1"
+        __check_tty # We need to check again.
+        ;;
+    1 | 2)
+        __logger_output="/dev/fd/$1"
+        __check_tty # We need to check again.
+        ;;
+    *)
+        if echo -n >>"$1" 2>/dev/null; then
+            __logger_output="$1"
+            __output_has_tty="" # File output does not support tty colors.
+        else
+            echo "Output file $1 is not writable."
+            exit 1
+        fi
+    esac
+}
+
+# Default to stderr.
+set_logger_output stderr
 
 __color_reset="\033[0m"
 __color_yellow="\033[33m"
 __color_red="\033[31m"
 __color_blue="\033[34m"
+
+__print_color_reset() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_reset" >>"$__logger_output"
+    fi
+}
+
+__print_color_yellow() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_yellow" >>"$__logger_output"
+    fi
+}
+
+__print_color_red() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_red" >>"$__logger_output"
+    fi
+}
+
+__print_color_blue() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_blue" >>"$__logger_output"
+    fi
+}
 
 __datestr() {
     # RFC3339/ISO8601 format. To be able to run on macOS (BSD),
@@ -133,7 +190,7 @@ logfmt_print() {
         key="$param"
     done
 
-    echo "$log_msg"
+    echo "$log_msg" >>"$__logger_output"
 }
 
 logfmt_print_with_timestamp() {
@@ -153,13 +210,9 @@ info() {
         return
     fi
 
-    if [[ -n $__has_tty ]]; then
-        echo -en "$__color_blue"
-    fi
+    __print_color_blue
     logfmt_print_with_timestamp level info msg "$@"
-    if [[ -n $__has_tty ]]; then
-        echo -en "$__color_reset"
-    fi
+    __print_color_reset
 }
 
 warn() {
@@ -167,13 +220,9 @@ warn() {
         return
     fi
 
-    if [[ -n $__has_tty ]]; then
-        echo -en "$__color_yellow"
-    fi
+    __print_color_yellow
     logfmt_print_with_timestamp level warn msg "$@"
-    if [[ -n $__has_tty ]]; then
-        echo -en "$__color_reset"
-    fi
+    __print_color_reset
 }
 
 error() {
@@ -181,23 +230,15 @@ error() {
         return
     fi
 
-    if [[ -n $__has_tty ]]; then
-        echo -en "$__color_red"
-    fi
+    __print_color_red
     logfmt_print_with_timestamp level error msg "$@"
-    if [[ -n $__has_tty ]]; then
-        echo -en "$__color_reset"
-    fi
+    __print_color_reset
 }
 
 fatal() {
-    if [[ -n $__has_tty ]]; then
-        echo -en "$__color_red"
-    fi
+    __print_color_red
     logfmt_print_with_timestamp level fatal msg "$@"
-    if [[ -n $__has_tty ]]; then
-        echo -en "$__color_reset"
-    fi
+    __print_color_reset
 
     exit 1
 }
