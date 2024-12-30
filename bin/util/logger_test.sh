@@ -60,3 +60,12 @@ debug "This message need to be escaped." key1 "value with spaces" key2 "value wi
 echo
 echo "===== Colors ====="
 echo "If you run this script in a terminal, you should see the log messages in different colors. Otherwise, you should see the log messages in plain text."
+
+echo
+echo "===== Setting output to a file ====="
+set_logger_output /tmp/logger_test.log
+info "This message should be written to /tmp/logger_test.log"
+echo "Cat /tmp/logger_test.log:"
+cat /tmp/logger_test.log
+set_logger_output stdout
+info "This message should be written to /dev/stdout"
