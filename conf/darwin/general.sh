@@ -67,9 +67,9 @@ confirm "Enable the debug menu in Disk Utility" &&
 confirm "Auto-play videos when opened with QuickTime Player" &&
     defaults write com.apple.QuickTimePlayerX MGPlayMovieOnOpen -bool true
 
-confirm "Avoiding all apps reopening when macOS crashes" &&
-    sudo chown root ~/Library/Preferences/ByHost/com.apple.loginwindow* &&
-    sudo chmod 000 ~/Library/Preferences/ByHost/com.apple.loginwindow*
+# confirm "Avoiding all apps reopening when macOS crashes" &&
+#     sudo chown root ~/Library/Preferences/ByHost/com.apple.loginwindow* &&
+#     sudo chmod 000 ~/Library/Preferences/ByHost/com.apple.loginwindow*
 
 # https://www.macobserver.com/tips/disable-os-x-login-screen-saver/
 # https://www.reddit.com/r/macmini/comments/posw4u/m1_mac_mini_screen_saver_still_randomly_invokes/

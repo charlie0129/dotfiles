@@ -89,3 +89,7 @@ alias ip6="ip -6"
 alias ipa="ip a"
 alias ipl="ip l"
 alias ipr="ip r"
+
+# Disable / enable terminal line wrap
+alias setwrap="tput smam"
+alias setnowrap="tput rmam"

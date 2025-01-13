@@ -52,6 +52,8 @@ hyper - w: open -a "WeChat";
 hyper - q: open -a "QQ";
 hyper - f: open -a "Lark";
 hyper - g: open -a "GoLand";
-# hyper + v is occupied by other programs.s
+# hyper + v is occupied by other programs.
 hyper - m: open -a "MongoDB Compass";
 hyper - p: open -a "Preview";
+
+hyper - r: sleep 0.2; killall Hyperkey; sleep 0.5; open -a "Hyperkey";
