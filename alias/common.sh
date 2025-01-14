@@ -8,13 +8,19 @@ alias -g ......='../../../../..'
 
 # ls
 if type lsd > /dev/null; then
-    alias lsd='lsd --icon never'
+    alias lsd='lsd --icon never --date "+%Y-%m-%d %H:%M:%S"'
     alias ls='lsd --group-directories-first'
+else
+    if [[ "$OS" == "darwin" ]]; then
+        alias ls='ls -G -D "%Y-%m-%d %H:%M:%S"'
+    elif [[ "$OS" == "linux" ]]; then
+        alias ls='ls --color=auto --time-style="+%Y-%m-%d %H:%M:%S"'
+    fi
 fi
-alias l='ls -lah'
-alias ll='ls -lh'
-alias la='ls -lAh'
-alias lsa='ls -lah'
+alias l='ls -lahF'
+alias ll='ls -lhF'
+alias la='ls -lAhF'
+alias lsa='ls -lahF'
 
 # htop with sudo as default
 alias htop='sudo htop'

@@ -76,5 +76,8 @@ confirm "Auto-play videos when opened with QuickTime Player" &&
 confirm "Disable screen saver at the login screen. Useful to resolve screen saver lockup issues when in a VNC session" &&
     sudo defaults write /Library/Preferences/com.apple.screensaver loginWindowIdleTime 0
 
+confirm "Disable quarantine for all files" &&
+    defaults write com.apple.LaunchServices LSQuarantine -bool false
+
 echo "That's all for now. You may need to restart the corresponding apps, or even your computer for the changes to take effect."
 exit 0

@@ -5,7 +5,7 @@
 if [[ $# -lt 1 ]]; then
     echo "Too few parameters." >&2
     echo "Note:" >&2
-    echo "  The first parameter should be the size of the RAM disk (in MB)." >&2
+    echo "  The first parameter should be the size of the RAM disk (in GB)." >&2
     exit 1
 fi
 
@@ -15,21 +15,26 @@ if ! [[ $1 =~ $re ]]; then
     exit 1
 fi
 
-echo -n "Proceed with a $1 MB RAM disk [y/n]?"
-while true; do
-    read -r yn
-    case $yn in
-    [Yy]*)
-        break
-        ;;
-    [Nn]*) exit 0 ;;
-    *) echo "Please answer yes(Y/y) or no(N/n)." ;;
-    esac
-done
+if [ -t 1 ]; then
+    echo -n "Proceed with a $1 GB RAM disk [y/n]?"
+    while true; do
+        read -r yn
+        case $yn in
+        [Yy]*)
+            break
+            ;;
+        [Nn]*) exit 0 ;;
+        *) echo "Please answer yes(Y/y) or no(N/n)." ;;
+        esac
+    done
+fi
 
-DISK_NAME=ramdisk
+DISK_NAME=ramdisk-${1}g
 MOUNT_PATH=/Volumes/$DISK_NAME
 DISK_SPACE=$1
 if [ ! -e $MOUNT_PATH ]; then
-    diskutil erasevolume HFS+ $DISK_NAME $(hdiutil attach -nomount ram://$(($DISK_SPACE * 1024 * 2)))
+    disk_id=$(hdiutil attach -nomount ram://$(($DISK_SPACE * 1000 * 1000 * 1000 / 512)))
+    echo "Created ramdisk at $disk_id"
+    diskutil erasevolume APFS $DISK_NAME $disk_id
+    echo "Mounted ramdisk $disk_id at $MOUNT_PATH"
 fi
