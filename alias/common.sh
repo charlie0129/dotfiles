@@ -74,7 +74,6 @@ if ! type conda > /dev/null; then
 fi
 
 # Kubernetes
-alias k9s="k9s --logoless"
 alias k="kubectl"
 alias kg="kubectl get"
 alias kex="kubectl explain"

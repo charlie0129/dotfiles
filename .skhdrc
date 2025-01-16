@@ -43,7 +43,7 @@
 # ctrl + alt - s : yabai -m window --toggle sticky;
 
 # Quick Application launches
-hyper - t: open -a "iTerm";
+# hyper - t: open -a "iTerm";
 hyper - c: open -a "Google Chrome";
 hyper - e: open -a "CotEditor";
 hyper - s: open -a "Safari";
