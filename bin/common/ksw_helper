@@ -38,7 +38,7 @@ keys="0123456789abcdefghijklmnoprstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 def to_menu_items(configs: list[Config]) -> list[str]:
     ret: list[str] = []
     for i, c in enumerate(configs):
-        ret.append(f"[{keys[i]}] {c}")
+        ret.append(f"{c}")
     return ret
 
 
@@ -93,6 +93,7 @@ def main():
         to_menu_items(configs),
         preview_command=preview(configs),
         title="Choose a kubeconfig file (use / to filter):",
+        search_key=None,
     )
     chosen_idx = term_menu.show()
     if chosen_idx == None:
