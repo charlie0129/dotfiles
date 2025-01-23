@@ -10,6 +10,7 @@ test.sh
 # Custom resources
 alias/custom.sh
 env/custom.sh
+func/custom.sh
 bin/custom/*
-custom-omz-plugins.sh
 !bin/custom/.gitkeep
+custom-omz-plugins.sh
