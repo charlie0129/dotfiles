@@ -48,18 +48,6 @@ cd "$DOTFILES_ROOT" && link_files && cd "$DOTFILES_ROOT"
 # Add +x permissions to all executables
 bash bin/fix-permission
 
-# If git is installed, skip tracking custom configs
-CUSTOM_CONFIGS=(
-    alias/custom.sh
-    env/custom.sh
-    func/custom.sh
-    custom-omz-plugins.sh
-)
-if command -v git >/dev/null 2>&1; then
-    git update-index --skip-worktree "${CUSTOM_CONFIGS[@]}"
-    # To revert: git update-index --no-skip-worktree "${CUSTOM_CONFIGS[@]}"
-fi
-
 if [ "${SHELL}" != "$(which zsh)" ]; then
     echo -e "Your default shell is not zsh. Use '${COLOR_BOLD}chsh -s $(which zsh)${COLOR_RESET}' to change it."
 fi
