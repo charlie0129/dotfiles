@@ -15,8 +15,8 @@ alias unloadzerotier="sudo launchctl unload /Library/LaunchDaemons/com.zerotier.
 alias pc="proxychains4"
 
 # Transparent filesystem compression using afsctool
-alias -g tcomp='afsctool -c -J$(sysctl -n hw.physicalcpu) -T LZFSE'
-alias tcompi="afsctool -v"
+alias -g tcomp='applesauce compress --verify'
+alias tcompi="applesauce info"
 
 # common mistakes
 alias open.="open ."
