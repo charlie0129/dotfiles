@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -o pipefail
+set -o errexit
+
+if [ -z "$1" ]; then
+    echo "Recursively evict local copies of iCloud files."
+    echo "Usage: $0 <path>"
+    exit 1
+fi
+
+if ! command -v rust-parallel &>/dev/null; then
+    echo "rust-parallel is required. Install it with 'brew install rust-parallel'."
+    exit 1
+fi
+
+path="$1"
+
+# Find all files in the given path and call 'brctl evict <file>' on each file, in parallel,
+# excluding .DS_Store and ._ (macOS-generated trash on SMB shares) files.
+#
+# Why not use GNU parallel?
+#
+# We want to evict iCloud files in parallel to speed up the process.
+# Since 'brctl evict' is very fast, the per-job overhead of GNU parallel is too large,
+# it will make it even slower than just running brctl evict in a loop (find -exec brctl evict {}).
+# So we use rust-parallel instead, it is optimized to have a very low per-job overhead
+# (not because it is written in BLAZING FAST RUST, but because it is designed to be fast).
+# It will save us a lot of time when evicting a large number of files.
+find "$path" -type f \
+    -not -name '.DS_Store' \
+    -not -name '._*' \
+    -print0 |
+    rust-parallel -0 \
+        brctl evict
