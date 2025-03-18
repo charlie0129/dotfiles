@@ -36,7 +36,11 @@ alias tzst='tar --preserve-permissions --use-compress-program "zstd -T0" -cf'
 alias untzst='tar --preserve-permissions --use-compress-program zstd -xf'
 
 # Short for docker compose
-alias comp="docker compose"
+if type docker-compose > /dev/null 2>&1; then
+    alias comp="docker-compose"
+else
+    alias comp="docker compose"
+fi
 
 # Common mistakes
 alias code.="code ."
