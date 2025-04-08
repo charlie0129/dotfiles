@@ -48,8 +48,8 @@ alias code,="code ."
 alias cd..="cd .."
 
 # Setup local proxy
-alias setproxy='export http_proxy=${PROXY_ADDR}; export https_proxy=${PROXY_ADDR}; export HTTP_PROXY=${PROXY_ADDR}; export HTTPS_PROXY=${PROXY_ADDR};'
-alias unsetproxy="unset http_proxy; unset https_proxy; unset HTTP_PROXY; unset HTTPS_PROXY;"
+alias setproxy='export http_proxy=${PROXY_ADDR} https_proxy=${PROXY_ADDR} HTTP_PROXY=${PROXY_ADDR} HTTPS_PROXY=${PROXY_ADDR}'
+alias unsetproxy="unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY"
 
 # bbdown - Download Bilibili video
 alias bbdown="bbdown --show-all --interactive --download-danmaku"
