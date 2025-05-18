@@ -44,8 +44,8 @@
 
 # Quick Application launches
 # hyper - t: open -a "iTerm";
-hyper - c: open -a "Vivaldi";
-hyper - e: open -a "CotEditor";
+hyper - b: open -a "Vivaldi";
+# hyper - e: open -a "CotEditor"; # For ScratchPad
 hyper - s: open -a "Safari";
 hyper - l: open -a "Lens";
 hyper - w: open -a "WeChat";
