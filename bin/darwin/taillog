@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+
+import argparse
+import subprocess
+import json
+from typing import Tuple, Optional
+import datetime
+
+
+def parse_log_line(line: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    try:
+        log_entry = json.loads(line)
+        return (
+            log_entry.get("messageType"),
+            log_entry.get("timestamp"),
+            log_entry.get("eventMessage"),
+        )
+    except json.JSONDecodeError:
+        return None, None, None
+
+
+def format_log(level: str, process_name: str) -> None:
+    levels = {"debug": 10, "info": 20}
+    level_value = levels[level.lower()]
+
+    command = ["log", "stream", "--source", "--style", "ndjson"]
+    if process_name is not None:
+        command.append("--process")
+        command.append(process_name)
+    if level_value <= levels["debug"]:
+        command.append("--debug")
+    if level_value <= levels["info"]:
+        command.append("--info")
+
+    process = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+    )
+
+    log_count = 0
+    last_count = 0
+    last_print_stat = datetime.datetime.now()
+    stat_interval = 1.0
+    log_rate = 0.0
+
+    try:
+        for line in process.stdout:
+            messageType, timestamp, eventMessage = parse_log_line(line)
+            if messageType and timestamp and eventMessage:
+                color = "\033[0m"
+                level = messageType.lower()
+                if level.startswith("debug"):
+                    color = "\033[90m"
+                elif level.startswith("info"):
+                    color = "\033[94m"
+                elif level.startswith("warn"):
+                    color = "\033[93m"
+                elif level.startswith("error"):
+                    color = "\033[91m"
+                else:
+                    color = "\033[0m"
+
+                reset_color = "\033[0m"
+                log_count += 1
+
+                print(
+                    f"{color}{messageType:<7} {timestamp:<30}{reset_color} {eventMessage}"
+                )
+                print(
+                    f"{log_rate:>7.1f} logs/sec, {log_count} logs total",
+                    end="\r",
+                )
+                if (
+                    last_print_stat + datetime.timedelta(seconds=stat_interval)
+                    < datetime.datetime.now()
+                    and log_count > last_count + 5
+                ):
+                    log_rate = (
+                        float(log_count - last_count)
+                        / (datetime.datetime.now() - last_print_stat).total_seconds()
+                    )
+                    last_print_stat = datetime.datetime.now()
+                    last_count = log_count
+    except KeyboardInterrupt:
+        process.terminate()
+        process.wait()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Format macOS logs.")
+    parser.add_argument(
+        "--process",
+        required=True,
+        type=str,
+        help="Name of the process to filter logs by.",
+    )
+    parser.add_argument(
+        "--level",
+        choices=["debug", "info"],
+        default="info",
+        type=str,
+        help="Minimum log level to display.",
+    )
+
+    args = parser.parse_args()
+    format_log(args.level, args.process)
