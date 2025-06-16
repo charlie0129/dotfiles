@@ -11,8 +11,12 @@ PATH_BEFORE=(
 
 # This list is appended after PATH
 PATH_AFTER=(
-
+    /Volumes/MacTeX2025Portable/bin
+    /Volumes/MacTeX2025Portable/texlive/2025/bin/universal-darwin
+    $HOME/src/github.com/brendangregg/FlameGraph
 )
 
 PATH="$(IFS=:; echo "${PATH_BEFORE[*]}"):$PATH:$(IFS=:; echo "${PATH_AFTER[*]}")"
 export PATH
+
+export GOPRIVATE="dev.aminer.cn/*"

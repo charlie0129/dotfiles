@@ -1,0 +1,8 @@
+# ideavim config
+.ideavimrc:$HOME/.ideavimrc
+
+# yabai config
+.yabairc:$HOME/.yabairc
+
+# skhd config
+.skhdrc:$HOME/.skhdrc

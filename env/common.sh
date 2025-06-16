@@ -61,7 +61,6 @@ export LS_COLORS
 
 # Setup Go proxy in China
 export GOPROXY="https://goproxy.cn,direct"
-export GOPRIVATE="dev.aminer.cn/*"
 
 # Local proxy. Will be used in aliases like setproxy.
 # To change it without being tracked by git,
