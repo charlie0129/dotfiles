@@ -7,7 +7,7 @@ alias -g .....='../../../..'
 alias -g ......='../../../../..'
 
 # ls
-if type lsd > /dev/null; then
+if type lsd >/dev/null 2>&1; then
     alias lsd='lsd --icon never --date "+%Y-%m-%d %H:%M:%S"'
     alias ls='lsd --group-directories-first'
 else
@@ -80,6 +80,8 @@ alias kg="kubectl get"
 alias kex="kubectl explain"
 alias kpf="kubectl port-forward"
 alias kns="kubectl node-shell"
+alias kdf="kubectl delete -f"
+alias kaf="kubectl apply -f"
 
 alias zj="zellij"
 

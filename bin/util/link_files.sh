@@ -1,8 +1,23 @@
 #!/usr/bin/env bash
 
 function link_files() {
+    local os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+    for type in common "$os" custom; do
+        if [ -f ".pathmapping.$type" ]; then
+            __link_files ".pathmapping.$type"
+        fi
+    done
+}
+
+function __link_files() {
+    pathmapping_file="$1"
+    if [[ ! -f "$pathmapping_file" ]]; then
+        echo "Path mapping file '$pathmapping_file' does not exist."
+        return 1
+    fi
+
     # Read `.pathmapping file' into array line by line
-    IFS=$'\n' read -d "" -ra file_data <".pathmapping"
+    IFS=$'\n' read -d "" -ra file_data <"$pathmapping_file"
 
     for element in "${file_data[@]}"; do
         # Ignore comments

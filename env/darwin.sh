@@ -4,15 +4,12 @@
 PATH_BEFORE=(
     # bin in this repo
     $DOTFILES_ROOT/bin/darwin
-    # Homebrew x86_64. I am not using Homebrew anymore. Just keep it here if anyone needs it.
+    # Homebrew x86_64.
     /usr/local/bin
     /usr/local/sbin
-    # Homebrew arm64. I am not using Homebrew anymore. Just keep it here if anyone needs it.
+    # Homebrew arm64.
     /opt/homebrew/bin
     /opt/homebrew/sbin
-    # I use nix as my package manger now, installed using https://github.com/DeterminateSystems/nix-installer.
-    # The installer configures PATH globally in /etc/zshrc, /etc/zshenv, /etc/bashrc
-    # so I don't need to set it here.
     # OrbStack
     $HOME/.orbstack/bin
 )

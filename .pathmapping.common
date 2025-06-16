@@ -12,14 +12,5 @@
 # xmodmap config
 .Xmodmap:$HOME/.Xmodmap
 
-# ideavim config
-.ideavimrc:$HOME/.ideavimrc
-
 # neovim config
 nvim:$DOTFILES_ROOT/dep/nvchad/lua/custom
-
-# yabai config
-.yabairc:$HOME/.yabairc
-
-# skhd config
-.skhdrc:$HOME/.skhdrc
