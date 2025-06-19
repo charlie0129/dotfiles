@@ -93,6 +93,7 @@ set_logger_output() {
             echo "Output file $1 is not writable."
             exit 1
         fi
+        ;;
     esac
 }
 
@@ -103,38 +104,53 @@ __color_reset="\033[0m"
 __color_yellow="\033[33m"
 __color_red="\033[31m"
 __color_blue="\033[34m"
+__color_faint="\033[2m"
 
 __print_color_reset() {
     if [[ -n $__output_has_tty ]]; then
-        echo -en "$__color_reset" >>"$__logger_output"
+        echo -en "$__color_reset"
     fi
 }
 
 __print_color_yellow() {
     if [[ -n $__output_has_tty ]]; then
-        echo -en "$__color_yellow" >>"$__logger_output"
+        echo -en "$__color_yellow"
     fi
 }
 
 __print_color_red() {
     if [[ -n $__output_has_tty ]]; then
-        echo -en "$__color_red" >>"$__logger_output"
+        echo -en "$__color_red"
     fi
 }
 
 __print_color_blue() {
     if [[ -n $__output_has_tty ]]; then
-        echo -en "$__color_blue" >>"$__logger_output"
+        echo -en "$__color_blue"
+    fi
+}
+
+__print_color_faint() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_faint"
     fi
 }
 
 __datestr() {
+    if [[ -n $__output_has_tty ]]; then
+        # Use short format to make it more human-readable.
+        # We cannot use %3N for milliseconds, so we use %N and then slice it.
+        local time=$(date +"%H:%M:%S.%N")
+        echo -n "${time:0:12}"
+        return
+    fi
     # RFC3339/ISO8601 format. To be able to run on macOS (BSD),
     # we cannot use %:z, so we have to manually add colon.
-    # (GNU date) %Y-%m-%dT%H:%M:%S%:z -> 2021-01-16T23:09:44-05:00
-    # (all dates) %Y-%m-%dT%H:%M:%S%z -> 2021-01-16T23:09:44-0500
-    local time=$(date +%Y-%m-%dT%H:%M:%S%z)
-    echo -n "${time:0:22}:${time:22:2}"
+    # (GNU date) %Y-%m-%dT%H:%M:%S%:z -> 2025-06-19T16:29:10.158533118+08:00
+    # (all dates) %Y-%m-%dT%H:%M:%S%z -> 2025-06-19T16:29:10.158533118+0800
+    # We cannot use %3N for milliseconds too, so we use %N and then slice it.
+    local time=$(date +%Y-%m-%dT%H:%M:%S.%N%z)
+    echo -n "${time:0:23}${time:29:3}:${time:32:2}"
 }
 
 __need_quotes() {
@@ -147,16 +163,16 @@ __need_quotes() {
 # Escape logfmt special characters
 __logfmt_escape() {
     local value="$1"
-    value="${value//\\/\\\\}"   # Escape backslashes
-    value="${value//\"/\\\"}"   # Escape double quotes
-    value="${value//$'\n'/\\n}" # Replace newline with \n
-    value="${value//$'\r'/\\r}" # Replace carriage return with \r
-    value="${value//$'\t'/\\t}" # Replace tab with \t
-    value="${value//$'\v'/\\v}" # Replace vertical tab with \v
-    value="${value//$'\f'/\\f}" # Replace form feed with \f
-    value="${value//$'\b'/\\b}" # Replace backspace with \b
-    value="${value//$'\a'/\\a}" # Replace bell with \a
-    value="${value//$'\e'/\\e}" # Replace escape with \e
+    value="${value//\\/\\\\}"                        # Escape backslashes
+    value="${value//\"/\\\"}"                        # Escape double quotes
+    value="${value//$'\n'/\\n}"                      # Replace newline with \n
+    value="${value//$'\r'/\\r}"                      # Replace carriage return with \r
+    value="${value//$'\t'/\\t}"                      # Replace tab with \t
+    value="${value//$'\v'/\\v}"                      # Replace vertical tab with \v
+    value="${value//$'\f'/\\f}"                      # Replace form feed with \f
+    value="${value//$'\b'/\\b}"                      # Replace backspace with \b
+    value="${value//$'\a'/\\a}"                      # Replace bell with \a
+    value="${value//$'\e'/\\e}"                      # Replace escape with \e
     echo -n "$value" | LC_CTYPE=C tr -dc '[:print:]' # Remove all other control characters
 }
 
@@ -183,7 +199,14 @@ logfmt_print() {
             if [[ -n "$log_msg" ]]; then
                 log_msg+=" "
             fi
-            log_msg+="$(__logfmt_kv_format "$key")=$(__logfmt_kv_format "$param")"
+            # Print key
+            log_msg+="$(__print_color_faint)"
+            log_msg+="$(__logfmt_kv_format "$key")"
+            # =
+            log_msg+="="
+            log_msg+="$(__print_color_reset)"
+            # Print value
+            log_msg+="$(__logfmt_kv_format "$param")"
             key=""
             continue
         fi
@@ -202,6 +225,13 @@ debug() {
         return
     fi
 
+    if [[ -n $__output_has_tty ]]; then
+        echo -n "$(__datestr) " >>"$__logger_output"
+        echo -n "DEBU " >>"$__logger_output"
+        logfmt_print msg "$@"
+        return
+    fi
+
     logfmt_print_with_timestamp level debug msg "$@"
 }
 
@@ -210,9 +240,16 @@ info() {
         return
     fi
 
-    __print_color_blue
+    if [[ -n $__output_has_tty ]]; then
+        echo -n "$(__datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_blue)" >>"$__logger_output"
+        echo -n "INFO " >>"$__logger_output"
+        echo -n "$(__print_color_reset)" >>"$__logger_output"
+        logfmt_print msg "$@"
+        return
+    fi
+
     logfmt_print_with_timestamp level info msg "$@"
-    __print_color_reset
 }
 
 warn() {
@@ -220,9 +257,16 @@ warn() {
         return
     fi
 
-    __print_color_yellow
+    if [[ -n $__output_has_tty ]]; then
+        echo -n "$(__datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_yellow)" >>"$__logger_output"
+        echo -n "WARN " >>"$__logger_output"
+        echo -n "$(__print_color_reset)" >>"$__logger_output"
+        logfmt_print msg "$@"
+        return
+    fi
+
     logfmt_print_with_timestamp level warn msg "$@"
-    __print_color_reset
 }
 
 error() {
@@ -230,15 +274,29 @@ error() {
         return
     fi
 
-    __print_color_red
+    if [[ -n $__output_has_tty ]]; then
+        echo -n "$(__datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_red)" >>"$__logger_output"
+        echo -n "ERRO " >>"$__logger_output"
+        echo -n "$(__print_color_reset)" >>"$__logger_output"
+        logfmt_print msg "$@"
+        return
+    fi
+
     logfmt_print_with_timestamp level error msg "$@"
-    __print_color_reset
 }
 
 fatal() {
-    __print_color_red
+    if [[ -n $__output_has_tty ]]; then
+        echo -n "$(__datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_red)" >>"$__logger_output"
+        echo -n "FATA " >>"$__logger_output"
+        echo -n "$(__print_color_reset)" >>"$__logger_output"
+        logfmt_print msg "$@"
+        exit 1
+    fi
+
     logfmt_print_with_timestamp level fatal msg "$@"
-    __print_color_reset
 
     exit 1
 }

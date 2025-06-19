@@ -63,9 +63,14 @@ echo "If you run this script in a terminal, you should see the log messages in d
 
 echo
 echo "===== Setting output to a file ====="
+
+echo "Setting logger output to /tmp/logger_test.log"
+echo -n >/tmp/logger_test.log
 set_logger_output /tmp/logger_test.log
 info "This message should be written to /tmp/logger_test.log"
+
 echo "Cat /tmp/logger_test.log:"
 cat /tmp/logger_test.log
+
 set_logger_output stdout
 info "This message should be written to /dev/stdout"
