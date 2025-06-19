@@ -606,6 +606,9 @@ defaults write com.apple.Safari IncludeInternalDebugMenu -bool true
 
 # Enable the Develop menu and the Web Inspector in Safari
 defaults write com.apple.Safari IncludeDevelopMenu -bool true
+defaults write com.apple.Safari DeveloperMenuVisibility -bool true
+defaults write com.apple.Safari.SandboxBroker ShowDevelopMenu -bool true
+defaults write com.apple.Safari WebKitPreferences.developerExtrasEnabled -bool true
 defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
 defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled -bool true
 
