@@ -19,6 +19,12 @@ sudo -v
 #sudo scutil --set LocalHostName "0x6D746873"
 #sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "0x6D746873"
 
+# Show notification previews only when unlocked
+defaults write com.apple.ncprefs content_visibility -int 2
+
+# Do not sync Focus mode across devices
+defaults write com.apple.donotdisturbd disableCloudSync -int 1
+
 # Disable Gatekeeper
 sudo spctl --master-disable
 sudo defaults write /Library/Preferences/com.apple.security GKAutoRearm -bool NO
@@ -116,6 +122,9 @@ defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 #sudo rm -rf /System/Library/CoreServices/DefaultDesktop.jpg
 #sudo ln -s /path/to/your/image /System/Library/CoreServices/DefaultDesktop.jpg
 
+# Disable AirPlay Receiver to free up ports 5000 and 7000
+defaults -currentHost write com.apple.controlcenter AirplayRecieverEnabled -bool false
+
 ###############################################################################
 # Trackpad, mouse, keyboard, Bluetooth accessories, and input                 #
 ###############################################################################
@@ -124,6 +133,34 @@ defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
 defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
 defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+
+# Trackpad: set click to light
+defaults write com.apple.AppleMultitouchTrackpad FirstClickThreshold -int 0
+
+# Trackpad: use dragging option - three finger drag
+defaults write com.apple.AppleMultitouchTrackpad DragLock -bool false
+defaults write com.apple.AppleMultitouchTrackpad Dragging -bool false
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerDragGesture -bool true
+
+# Various exported settings
+defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.enableSecondaryClick -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.fiveFingerPinchSwipeGesture -int 2
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.fourFingerHorizSwipeGesture -int 2
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.fourFingerPinchSwipeGesture -int 2
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.fourFingerVertSwipeGesture -int 2
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.momentumScroll -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.pinchGesture -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.rotateGesture -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.scrollBehavior -int 2
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerDragGesture -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerHorizSwipeGesture -int 0
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerTapGesture -int 2
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.threeFingerVertSwipeGesture -int 0
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.twoFingerDoubleTapGesture -int 1
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.twoFingerFromRightEdgeSwipeGesture -int 3
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.version -int 5
 
 # Trackpad: map bottom right corner to right-click
 # defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadCornerSecondaryClick -int 2
@@ -136,10 +173,22 @@ defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
 
 # Increase sound quality for Bluetooth headphones/headsets
 # defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" -int 40
+# ^ I think that's outdated. See below.
+# https://www.macrumors.com/how-to/enable-aptx-aac-bluetooth-audio-codecs-macos/
+defaults write bluetoothaudiod "Enable AptX codec" -bool true
 
 # Enable full keyboard access for all controls
 # (e.g. enable Tab in modal dialogs)
 defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
+
+# Disable Universal Control
+# defaults write com.apple.universalcontrol Disable -bool true
+# defaults write com.apple.universalcontrol DisableMagicEdges -bool true
+
+# Automatically illuminate built-in MacBook keyboard in low light
+# defaults write com.apple.BezelServices kDim -bool true
+# Turn off keyboard illumination when computer is not used for 5 minutes
+# defaults write com.apple.BezelServices kDimTime -int 300
 
 # Use scroll gesture with the Ctrl (^) modifier key to zoom
 # defaults write com.apple.universalaccess closeViewScrollWheelToggle -bool true
@@ -239,6 +288,9 @@ sudo defaults write /Library/Preferences/com.apple.windowserver DisplayResolutio
 ###############################################################################
 # Finder                                                                      #
 ###############################################################################
+
+# Open folders in new windows instead of tabs
+defaults write com.apple.finder FinderSpawnTab -bool false
 
 # Finder: allow quitting via ⌘ + Q; doing so will also hide desktop icons
 defaults write com.apple.finder QuitMenuItem -bool true
@@ -358,6 +410,33 @@ defaults write com.apple.finder FXRemoveOldTrashItems -bool true
 # Dock, Dashboard, and hot corners                                            #
 ###############################################################################
 
+# Clock in menu bar
+defaults write com.apple.menuextra.clock FlashDateSeparators -bool false
+defaults write com.apple.menuextra.clock ShowAMPM -bool true
+defaults write com.apple.menuextra.clock ShowDate -int 0
+defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
+defaults write com.apple.menuextra.clock ShowSeconds -bool false
+
+# Menu bar, various items
+defaults write com.apple.controlcenter "NSStatusItem Visible AudioVideoModule" -bool false
+defaults write com.apple.controlcenter "NSStatusItem Visible Battery" -bool false
+defaults write com.apple.controlcenter "NSStatusItem Visible BentoBox" -bool true
+defaults write com.apple.controlcenter "NSStatusItem Visible Bluetooth" -bool true
+defaults write com.apple.controlcenter "NSStatusItem Visible Clock" -bool true
+defaults write com.apple.controlcenter "NSStatusItem Visible Display" -bool false
+defaults write com.apple.controlcenter "NSStatusItem Visible FaceTime" -bool false
+defaults write com.apple.controlcenter "NSStatusItem Visible FocusModes" -bool false
+defaults write com.apple.controlcenter "NSStatusItem Visible NowPlaying" -bool false
+defaults write com.apple.controlcenter "NSStatusItem Visible Sound" -bool true
+defaults write com.apple.controlcenter "NSStatusItem Visible WiFi" -bool true
+
+defaults -currentHost write com.apple.controlcenter "Bluetooth" -int 2 # Show
+defaults -currentHost write com.apple.controlcenter "KeyboardBrightness" -int 1 # In Control Center
+defaults -currentHost write com.apple.controlcenter "NowPlaying" -int 8 # Never visible
+defaults -currentHost write com.apple.controlcenter "Sound" -int 18 # Always Show
+defaults -currentHost write com.apple.controlcenter "VoiceControl" -int 8
+defaults -currentHost write com.apple.controlcenter "Battery" -int 8 # Never visible. I use iStat Menus so I don't need this.
+
 # Enable highlight hover effect for the grid view of a stack (Dock)
 defaults write com.apple.dock mouse-over-hilite-stack -bool true
 
@@ -460,6 +539,23 @@ defaults write com.apple.dock showhidden -bool true
 # Bottom left screen corner → Start screen saver
 # defaults write com.apple.dock wvous-bl-corner -int 5
 # defaults write com.apple.dock wvous-bl-modifier -int 0
+
+###############################################################################
+# Window Management                                                           #
+###############################################################################
+
+# Don't do anything when clicking the wallpaper
+defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
+
+# Remove margins from tiled windows
+defaults write com.apple.WindowManager EnableTiledWindowMargins -bool false
+
+# Do not show desktop icons
+defaults write com.apple.WindowManager HideDesktop -bool true
+
+# StageManagerHideWidgets
+defaults write com.apple.WindowManager StageManagerHideWidgets -bool true
+
 
 ###############################################################################
 # Safari & WebKit                                                             #

@@ -11,6 +11,7 @@ domains=(
     # com.googlecode.iterm2 # Results in invalid XML
     com.apple.driver.AppleBluetoothMultitouch.trackpad
     com.apple.AppleMultitouchTrackpad
+    com.apple.symbolichotkeys
     com.macitbetter.betterzip
     com.coteditor.CotEditor
     com.movist.MovistPro
