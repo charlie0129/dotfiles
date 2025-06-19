@@ -90,13 +90,15 @@ alias tree='tree -a -I .git'
 alias diff="diff --color=auto"
 
 # iproute2 commands
-# Why is this in common.sh? Does iproute2 linux-only?
+# Why is this in common.sh? Is iproute2 linux-only?
 # Because we have iproute2mac installed in this dotfile, so macOS can also use ip commands.
 alias ip="ip --color=auto"
 alias ip6="ip -6"
 alias ipa="ip a"
 alias ipl="ip l"
 alias ipr="ip r"
+alias ip6a="ip6 a"
+alias ip6r="ip6 r"
 
 # Disable / enable terminal line wrap
 alias setwrap="tput smam"
