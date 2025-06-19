@@ -285,6 +285,9 @@ sudo chflags uchg /private/var/vm/sleepimage
 # Enable HiDPI display modes (requires restart)
 sudo defaults write /Library/Preferences/com.apple.windowserver DisplayResolutionEnabled -bool true
 
+# Show resolution as a list
+defaults write com.apple.Displays-Settings.extension showListByDefault -bool true
+
 ###############################################################################
 # Finder                                                                      #
 ###############################################################################
