@@ -1,0 +1,25 @@
+#!/bin/bash
+
+tmpdir="$(mktemp -d)"
+
+echo "Reading current defaults..."
+defaults read > "$tmpdir/current_defaults.txt"
+echo "Current dafaults has been saved."
+
+echo "Now, change the settings you want to compare, then press any key to continue."
+read -n 1 -s
+
+echo "Reading modified defaults..."
+defaults read > "$tmpdir/modified_defaults.txt"
+echo "Modified defaults has been saved."
+
+echo "Now comparing the two files..."
+diff --color=always "$tmpdir/current_defaults.txt" "$tmpdir/modified_defaults.txt"
+open "$tmpdir"
+
+echo "Press any key to delete the temporary files and exit."
+read -n 1 -s
+
+rm -rf "$tmpdir"
+echo "Temporary files deleted. Exiting."
+exit 0
