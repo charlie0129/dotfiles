@@ -254,12 +254,14 @@ sudo pmset -a womp 0
 #    power failure.
 sudo pmset -a hibernatemode 0
 
-# Remove the sleep image file to save disk space
-sudo rm /private/var/vm/sleepimage
-# Create a zero-byte file instead…
-sudo touch /private/var/vm/sleepimage
-# …and make sure it can’t be rewritten
-sudo chflags uchg /private/var/vm/sleepimage
+if [ -f /private/var/vm/sleepimage ]; then
+    # Remove the sleep image file to save disk space
+    sudo rm /private/var/vm/sleepimage 2>/dev/null
+    # Create a zero-byte file instead…
+    sudo touch /private/var/vm/sleepimage 2>/dev/null
+    # …and make sure it can’t be rewritten
+    sudo chflags uchg /private/var/vm/sleepimage 2>/dev/null
+fi
 
 ###############################################################################
 # Screen                                                                      #
@@ -863,8 +865,7 @@ defaults write com.apple.messageshelper.MessageController SOInputLineSettings -d
 # Disable continuous spell checking
 defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "continuousSpellCheckingEnabled" -bool false
 
-###############################################################################
-# CotEditor                                                                   #
-###############################################################################
 
-defaults write com.coteditor.CotEditor 
+
+echo "Completed. It's expected that you may find System Settings not behaving like normal. Reboot your Mac."
+
