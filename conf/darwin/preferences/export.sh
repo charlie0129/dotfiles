@@ -22,6 +22,8 @@ for domain in "${domains[@]}"; do
     defaults export "$domain" - >"$domain.plist"
 done
 
+./sanitize.py
+
 
 # Full export (deprecated)
 
