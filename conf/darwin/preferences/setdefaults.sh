@@ -19,10 +19,16 @@ sudo -v
 #sudo scutil --set LocalHostName "0x6D746873"
 #sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "0x6D746873"
 
+# Ask to keep changes when closing documents (do not sliently save, which is annoying).
+defaults write NSGlobalDomain NSCloseAlwaysConfirmsChanges -bool true
+
+# Disable wallpaper tinting in windows
+defaults write NSGlobalDomain AppleReduceDesktopTinting -bool true
+
 # Show notification previews only when unlocked
 defaults write com.apple.ncprefs content_visibility -int 2
 
-# Do not sync Focus mode across devices
+# Do not share Focus mode across devices
 defaults write com.apple.donotdisturbd disableCloudSync -int 1
 
 # Disable Gatekeeper
@@ -254,6 +260,17 @@ sudo pmset -a womp 0
 #    power failure.
 sudo pmset -a hibernatemode 0
 
+# Do not dim display on battery
+sudo pmset -b lessbright 0
+
+# Disk sleep only on battery
+sudo pmset -b disksleep 10
+sudo pmset -c disksleep 0 # disable on AC
+
+# Display sleep: 10m battery, 20m AC
+sudo pmset -b displaysleep 10
+sudo pmset -c displaysleep 20
+
 if [ -f /private/var/vm/sleepimage ]; then
     # Remove the sleep image file to save disk space
     sudo rm /private/var/vm/sleepimage 2>/dev/null
@@ -415,6 +432,13 @@ defaults write com.apple.finder FXRemoveOldTrashItems -bool true
 # Dock, Dashboard, and hot corners                                            #
 ###############################################################################
 
+# Do not use iPhone widgets
+defaults write com.apple.chronod remoteWidgetsEnabled -bool false
+defaults write com.apple.chronod effectiveRemoteWidgetsEnabled -bool false
+
+# Use monochrome widgets
+defaults write com.apple.widgets widgetAppearance -int 0
+
 # Clock in menu bar
 defaults write com.apple.menuextra.clock FlashDateSeparators -bool false
 defaults write com.apple.menuextra.clock ShowAMPM -bool true
@@ -557,6 +581,7 @@ defaults write com.apple.WindowManager EnableTiledWindowMargins -bool false
 
 # Do not show desktop icons
 defaults write com.apple.WindowManager HideDesktop -bool true
+defaults write com.apple.WindowManager StandardHideDesktopIcons -bool true
 
 # StageManagerHideWidgets
 defaults write com.apple.WindowManager StageManagerHideWidgets -bool true
@@ -701,6 +726,10 @@ defaults write com.apple.Safari ShowTabGroupFavoritesPreferenceKey -bool false
 ###############################################################################
 # Spotlight                                                                   #
 ###############################################################################
+
+# Hide Spotlight menubar icon
+
+defaults -currentHost write com.apple.Spotlight MenuItemHidden -bool true
 
 # Hide Spotlight tray-icon (and subsequent helper)
 #sudo chmod 600 /System/Library/CoreServices/Search.bundle/Contents/MacOS/Search
@@ -868,7 +897,17 @@ defaults write com.apple.messageshelper.MessageController SOInputLineSettings -d
 # Disable continuous spell checking
 defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "continuousSpellCheckingEnabled" -bool false
 
+###############################################################################
+# END                                                                         #
+###############################################################################
 
+echo "There are a few more settings that I am not able to change. Go ahead and change them manually:"
+echo "  - Wi-Fi -> Ask to join networks / Ask to join hotspots -> OFF (annoying)"
+echo "  - General -> Software Update -> Automatic Updates -> i -> Turn Everything OFF"
+echo "  - Displays -> Advanced -> Show resolution as list -> ON"
+echo "  - Soptlight -> Only keep Applications, deselect everything (we will use Alfred)"
+echo "  - Notifications -> Allow notifications when the display is sleeping -> OFF"
+echo "  - Notifications -> Allow notifications when the screen is locked -> OFF (avoid constantly waking screen)"
+echo "  - Notifications -> Allow notifications when mirroring or sharing the display -> OFF"
 
 echo "Completed. It's expected that you may find System Settings not behaving like normal. Reboot your Mac."
-

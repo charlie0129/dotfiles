@@ -1,25 +1,44 @@
 #!/bin/bash
 
+source "$(dirname "${BASH_SOURCE}")/../util/logger.sh"
+
 tmpdir="$(mktemp -d)"
 
-echo "Reading current defaults..."
+info "Reading current defaults..."
 defaults read > "$tmpdir/current_defaults.txt"
-echo "Current dafaults has been saved."
+defaults -currentHost read > "$tmpdir/current_host_defaults.txt"
+pmset -g custom > "$tmpdir/current_pmset.txt"
+info "Current dafaults has been read."
 
 echo "Now, change the settings you want to compare, then press any key to continue."
 read -n 1 -s
 
-echo "Reading modified defaults..."
+info "Reading modified defaults..."
 defaults read > "$tmpdir/modified_defaults.txt"
-echo "Modified defaults has been saved."
+defaults -currentHost read > "$tmpdir/modified_host_defaults.txt"
+pmset -g custom > "$tmpdir/modified_pmset.txt"
+info "Modified defaults has been read."
 
-echo "Now comparing the two files..."
+info "Now comparing the defaults before and after..."
+echo "================================== DIFF BEGIN =================================="
 diff --color=always "$tmpdir/current_defaults.txt" "$tmpdir/modified_defaults.txt"
+echo "================================== DIFF  END  =================================="
+
+info "Now comparing the host defaults before and after..."
+echo "================================ DIFF HOST BEGIN ==============================="
+diff --color=always "$tmpdir/current_host_defaults.txt" "$tmpdir/modified_host_defaults.txt"
+echo "================================ DIFF HOST  END  ==============================="
+
+info "Now comparing pmset before and after..."
+echo "=============================== DIFF PMSET BEGIN ==============================="
+diff --color=always "$tmpdir/current_pmset.txt" "$tmpdir/modified_pmset.txt"
+echo "=============================== DIFF PMSET  END  ==============================="
+
 open "$tmpdir"
 
 echo "Press any key to delete the temporary files and exit."
 read -n 1 -s
 
 rm -rf "$tmpdir"
-echo "Temporary files deleted. Exiting."
+info "Temporary files deleted. Exiting."
 exit 0
