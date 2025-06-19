@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 """
   iproute2mac
   CLI wrapper for basic network utilites on Mac OS X.
@@ -11,6 +10,8 @@
 """
 
 from iproute2mac import *
+from utils.color import Colors, colorize, init_color
+
 import ipaddress
 import os
 import re
@@ -114,21 +115,37 @@ def link_addr_show(argv, af, json_print, pretty_json, address):
         return json_dump(links, pretty_json)
 
     for l in links:
+        # Colorize interface name and status
+        ifname = colorize(Colors.CYAN, l["ifname"])
+        status = colorize(Colors.GREEN if l["operstate"] == "UP" else Colors.RED, 
+                         l["operstate"])
+        
         print("%d: %s: <%s> mtu %d status %s" % (
-            l["ifindex"], l["ifname"], ",".join(l["flags"]), l["mtu"],
-            l["operstate"]
+            l["ifindex"], ifname, ",".join(l["flags"]), l["mtu"],
+            status
         ))
+        
+        # Colorize link info
+        link_type = "link/" + l["link_type"]
+        address = ((" " + colorize(Colors.YELLOW, l["address"])) if "address" in l else "")
+        broadcast = ((" brd " + colorize(Colors.YELLOW, l["broadcast"])) if "broadcast" in l else "")
         print(
-            "    link/" + l["link_type"] +
-            ((" " + l["address"]) if "address" in l else "") +
-            ((" brd " + l["broadcast"]) if "broadcast" in l else "")
+            "    " + link_type +
+            address +
+            broadcast
         )
+        
+        # Colorize address info
         for a in l.get("addr_info", []):
+            family = a["family"]
+            local = colorize(Colors.BLUE if ":" in a["local"] else Colors.PURPLE, a["local"])
+            address = (" peer %s" % colorize(Colors.BLUE if ":" in a["address"] else Colors.PURPLE, a["address"])) if "address" in a else ""
+            broadcast = (" brd " + colorize(Colors.BLUE if ":" in a["broadcast"] else Colors.PURPLE, a["broadcast"])) if "broadcast" in a else ""
             print(
-                "    %s %s" % (a["family"], a["local"]) +
-                ((" peer %s" % a["address"]) if "address" in a else "") +
+                "    %s %s" % (family, local) +
+                address +
                 "/%d" % (a["prefixlen"]) +
-                ((" brd " + a["broadcast"]) if "broadcast" in a else "")
+                broadcast
             )
 
     return True
@@ -138,7 +155,7 @@ def link_addr_show(argv, af, json_print, pretty_json, address):
 def do_help(argv=None, af=None, json_print=None, pretty_json=None):
     perror("Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }")
     perror("where  OBJECT := { link | addr | route | neigh }")
-    perror("       OPTIONS := { -V[ersion] | -j[son] | -p[retty] | -c[olor] |")
+    perror("       OPTIONS := { -V[ersion] | -j[son] | -p[retty] | -c[olor][=auto|always|never] |")
     perror("                    -4 | -6 }")
     perror(HELP_ADDENDUM)
     exit(255)
@@ -247,14 +264,17 @@ def do_route_list(af, json_print, pretty_json):
         return json_dump(routes, pretty_json)
 
     for route in routes:
+        dst = colorize(Colors.PURPLE, route["dst"]) if "default" not in route["dst"] else route["dst"]
         if "type" in route:
-            print("%s %s" % (route["type"], route["dst"]))
+            print("%s %s" % (route["type"], dst))
         elif "scope" in route:
+            dev = colorize(Colors.CYAN, route["dev"])
             print("%s dev %s scope %s" % (
-                route["dst"], route["dev"], route["scope"]))
+                dst, dev, route["scope"]))
         elif "gateway" in route:
+            dev = colorize(Colors.CYAN, route["dev"])
             print("%s via %s dev %s" % (
-                route["dst"], route["gateway"], route["dev"]))
+                dst, colorize(Colors.PURPLE, route["gateway"]), dev))
 
     return True
 
@@ -685,8 +705,7 @@ def main(argv):
             af = 4
             argv.pop(0)
         elif "-color".startswith(argv[0].split("=")[0]):
-            if "never" not in argv[0].split("="):
-                perror("iproute2mac: Color option is not implemented")
+            init_color(argv[0])
             argv.pop(0)
         elif "-json".startswith(argv[0]):
             json_print = True
