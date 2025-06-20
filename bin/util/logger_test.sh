@@ -7,7 +7,7 @@ set -o nounset
 source "$(dirname "${BASH_SOURCE}")/logger.sh"
 
 echo "===== Structured Logging ====="
-info "Structured Logging." pod.metadata.name test-pod somekey "$(echo -e "some\nvalue")" anotherkey "another value"
+info "Structured Logging. $(echo -e "newline here->\n-<")" pod.metadata.name test-pod somekey "$(echo -e "some\nvalue")" anotherkey "another value"
 
 echo
 echo "=====  Setting log level to debug ====="

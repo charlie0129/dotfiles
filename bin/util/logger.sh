@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
 
+# logger.sh - A structured logging (logfmt) utility for bash scripts.
+#
+# By default, it logs to stderr. If the output is a terminal (tty),
+# it make output more human-readable and uses colors to highlight log levels.
+# This format is NOT compatible with logfmt parsers. If the output is
+# not a terminal, it uses logfmt format, which is compatible with
+# logfmt parsers and can be used for structured logging.
+#
 # Usage: see logger_test.sh for examples.
 #
 # Setting log levels:
 #   `set_log_level <level>` (debug, info, warn, error)
-# Setting logger output:
+#
+# Setting logger output file:
 #   `set_logger_output <stdout|stderr|1|2|file>`
+#
 # Simple logging:
 #   `<debug|info|warn|error|fatal> <message>`
+#
 # Structured logging:
 #   `<debug|info|warn|error|fatal> <message> <key1> <value1> <key2> <value2> ...`
+#
 # Testing log levels:
 #   `is_<debug|info|warn|error>_level_enabled`
 
@@ -101,6 +113,10 @@ set_logger_output() {
 set_logger_output stderr
 
 __color_reset="\033[0m"
+__color_bold="\033[1m"
+__color_bold_yellow="\033[1;33m"
+__color_bold_red="\033[1;31m"
+__color_bold_blue="\033[1;34m"
 __color_yellow="\033[33m"
 __color_red="\033[31m"
 __color_blue="\033[34m"
@@ -109,6 +125,12 @@ __color_faint="\033[2m"
 __print_color_reset() {
     if [[ -n $__output_has_tty ]]; then
         echo -en "$__color_reset"
+    fi
+}
+
+__print_color_bold() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_bold"
     fi
 }
 
@@ -127,6 +149,24 @@ __print_color_red() {
 __print_color_blue() {
     if [[ -n $__output_has_tty ]]; then
         echo -en "$__color_blue"
+    fi
+}
+
+__print_color_bold_yellow() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_bold_yellow"
+    fi
+}
+
+__print_color_bold_red() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_bold_red"
+    fi
+}
+
+__print_color_bold_blue() {
+    if [[ -n $__output_has_tty ]]; then
+        echo -en "$__color_bold_blue"
     fi
 }
 
@@ -151,6 +191,10 @@ __datestr() {
     # We cannot use %3N for milliseconds too, so we use %N and then slice it.
     local time=$(date +%Y-%m-%dT%H:%M:%S.%N%z)
     echo -n "${time:0:23}${time:29:3}:${time:32:2}"
+}
+
+__faint_datestr() {
+    echo -n "$(__print_color_faint)$(__datestr)$(__print_color_reset)"
 }
 
 __need_quotes() {
@@ -185,6 +229,24 @@ __logfmt_kv_format() {
     fi
 }
 
+__logfmt_print_kv() {
+    local key="$1"
+    local value="$2"
+
+    if [[ -z "$key" || -z "$value" ]]; then
+        return
+    fi
+
+    # Print key
+    echo -n "$(__print_color_faint)"
+    echo -n "$(__logfmt_kv_format "$key")"
+    # =
+    echo -n "="
+    echo -n "$(__print_color_reset)"
+    # Print value
+    echo -n "$(__logfmt_kv_format "$value")"
+}
+
 # Print log messages in logfmt format.
 # Example: logfmt_print <key1> <value1> <key2> <value2> ...
 logfmt_print() {
@@ -199,19 +261,21 @@ logfmt_print() {
             if [[ -n "$log_msg" ]]; then
                 log_msg+=" "
             fi
-            # Print key
-            log_msg+="$(__print_color_faint)"
-            log_msg+="$(__logfmt_kv_format "$key")"
-            # =
-            log_msg+="="
-            log_msg+="$(__print_color_reset)"
-            # Print value
-            log_msg+="$(__logfmt_kv_format "$param")"
+            log_msg+="$(__logfmt_print_kv "$key" "$param")"
             key=""
             continue
         fi
         key="$param"
     done
+
+    # key should be empty now, if not, we have an odd number of parameters.
+    if [[ -n "$key" ]]; then
+        if [[ -n "$log_msg" ]]; then
+            log_msg+=" "
+        fi
+        log_msg+="$(__logfmt_print_kv "$key" "!INVALID_KEY")"
+        key=""
+    fi
 
     echo "$log_msg" >>"$__logger_output"
 }
@@ -226,9 +290,13 @@ debug() {
     fi
 
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__datestr) " >>"$__logger_output"
+        echo -n "$(__faint_datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_bold)" >>"$__logger_output"
         echo -n "DEBU " >>"$__logger_output"
-        logfmt_print msg "$@"
+        echo -n "$(__print_color_reset)" >>"$__logger_output"
+        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        shift
+        logfmt_print "$@"
         return
     fi
 
@@ -241,11 +309,13 @@ info() {
     fi
 
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_blue)" >>"$__logger_output"
+        echo -n "$(__faint_datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_bold_blue)" >>"$__logger_output"
         echo -n "INFO " >>"$__logger_output"
         echo -n "$(__print_color_reset)" >>"$__logger_output"
-        logfmt_print msg "$@"
+        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        shift
+        logfmt_print "$@"
         return
     fi
 
@@ -258,11 +328,13 @@ warn() {
     fi
 
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_yellow)" >>"$__logger_output"
+        echo -n "$(__faint_datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_bold_yellow)" >>"$__logger_output"
         echo -n "WARN " >>"$__logger_output"
         echo -n "$(__print_color_reset)" >>"$__logger_output"
-        logfmt_print msg "$@"
+        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        shift
+        logfmt_print "$@"
         return
     fi
 
@@ -275,11 +347,13 @@ error() {
     fi
 
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_red)" >>"$__logger_output"
+        echo -n "$(__faint_datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_bold_red)" >>"$__logger_output"
         echo -n "ERRO " >>"$__logger_output"
         echo -n "$(__print_color_reset)" >>"$__logger_output"
-        logfmt_print msg "$@"
+        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        shift
+        logfmt_print "$@"
         return
     fi
 
@@ -288,11 +362,13 @@ error() {
 
 fatal() {
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_red)" >>"$__logger_output"
+        echo -n "$(__faint_datestr) " >>"$__logger_output"
+        echo -n "$(__print_color_bold_red)" >>"$__logger_output"
         echo -n "FATA " >>"$__logger_output"
         echo -n "$(__print_color_reset)" >>"$__logger_output"
-        logfmt_print msg "$@"
+        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        shift
+        logfmt_print "$@"
         exit 1
     fi
 
