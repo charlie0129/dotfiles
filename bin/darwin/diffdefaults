@@ -2,38 +2,52 @@
 
 source "$(dirname "${BASH_SOURCE}")/../util/logger.sh"
 
+reset="\033[0m"
+yellow="\033[33m"
+blue="\033[34m"
+cyan="\033[36m"
+
 tmpdir="$(mktemp -d)"
 
-info "Reading current defaults..."
+info "Reading current defaults."
+
 defaults read > "$tmpdir/current_defaults.txt"
 defaults -currentHost read > "$tmpdir/current_host_defaults.txt"
 pmset -g custom > "$tmpdir/current_pmset.txt"
+
 info "Current dafaults has been read."
 
 echo "Now, change the settings you want to compare, then press any key to continue."
+
 read -n 1 -s
 
-info "Reading modified defaults..."
+info "Reading modified defaults."
+
 defaults read > "$tmpdir/modified_defaults.txt"
 defaults -currentHost read > "$tmpdir/modified_host_defaults.txt"
 pmset -g custom > "$tmpdir/modified_pmset.txt"
+
 info "Modified defaults has been read."
 
-info "Now comparing the defaults before and after..."
-echo "================================== DIFF BEGIN =================================="
+info "Now comparing the defaults before and after."
+
+echo -e "$yellow============ DIFF current_defaults.txt modified_defaults.txt BEGIN ============$reset"
 diff --color=always "$tmpdir/current_defaults.txt" "$tmpdir/modified_defaults.txt"
-echo "================================== DIFF  END  =================================="
+echo -e "$yellow============ DIFF current_defaults.txt modified_defaults.txt  END  ============$reset"
 
-info "Now comparing the host defaults before and after..."
-echo "================================ DIFF HOST BEGIN ==============================="
+info "Now comparing the host defaults before and after."
+
+echo -e "$blue======= DIFF current_host_defaults.txt modified_host_defaults.txt BEGIN =======$reset"
 diff --color=always "$tmpdir/current_host_defaults.txt" "$tmpdir/modified_host_defaults.txt"
-echo "================================ DIFF HOST  END  ==============================="
+echo -e "$blue======= DIFF current_host_defaults.txt modified_host_defaults.txt  END  =======$reset"
 
-info "Now comparing pmset before and after..."
-echo "=============================== DIFF PMSET BEGIN ==============================="
+info "Now comparing pmset before and after."
+
+echo -e "$cyan=============== DIFF current_pmset.txt modified_pmset.txt BEGIN ===============$reset"
 diff --color=always "$tmpdir/current_pmset.txt" "$tmpdir/modified_pmset.txt"
-echo "=============================== DIFF PMSET  END  ==============================="
+echo -e "$cyan=============== DIFF current_pmset.txt modified_pmset.txt  END  ===============$reset"
 
+info "Finder has been opened to the temporary files directory. Inspect then if you want."
 open "$tmpdir"
 
 echo "Press any key to delete the temporary files and exit."
@@ -41,4 +55,5 @@ read -n 1 -s
 
 rm -rf "$tmpdir"
 info "Temporary files deleted. Exiting."
+
 exit 0
