@@ -35,16 +35,16 @@ __log_level=$__LOG_LEVEL_INFO
 # Set log level: debug, info, warn, error
 set_log_level() {
     case $1 in
-    debug)
+    debug | DEBUG | d | D | 0)
         __log_level=$__LOG_LEVEL_DEBUG
         ;;
-    info)
+    info | INFO | i | I | 1)
         __log_level=$__LOG_LEVEL_INFO
         ;;
-    warn)
+    warn | WARN | w | W | 2)
         __log_level=$__LOG_LEVEL_WARN
         ;;
-    error)
+    error | ERROR | e | E | 3)
         __log_level=$__LOG_LEVEL_ERROR
         ;;
     *)
@@ -75,38 +75,56 @@ is_error_level_enabled() {
     __is_level_enabled $__LOG_LEVEL_ERROR
 }
 
+__logger_output="2"
 __output_has_tty="" # This decides if we should use tty colors or not.
 
 __check_tty() {
-    if [ -t 1 ]; then
+    local fd
+    if [[ "$__logger_output" == "1" || "$__logger_output" == "2" ]]; then
+        fd="$__logger_output"
+        if [ -t "$fd" ]; then
+            __output_has_tty=1
+        else
+            __output_has_tty=""
+        fi
+        return
+    fi
+    exec 10<>"$__logger_output"
+    fd="10"
+    if [ -t "$fd" ]; then
         __output_has_tty=1
     else
         __output_has_tty=""
     fi
+    exec 10>&- # Close the file descriptor.
 }
-
-__logger_output="/dev/stderr"
 
 set_logger_output() {
     case $1 in
-    stdout | stderr)
-        __logger_output="/dev/$1"
+    stdout | 1 | /dev/stdout | /dev/fd/1 | /proc/self/fd/1)
+        __logger_output="1"
         __check_tty # We need to check again.
         ;;
-    1 | 2)
-        __logger_output="/dev/fd/$1"
+    stderr | 2 | /dev/stderr | /dev/fd/2 | /proc/self/fd/2)
+        __logger_output="2"
         __check_tty # We need to check again.
         ;;
     *)
-        if echo -n >>"$1" 2>/dev/null; then
-            __logger_output="$1"
-            __output_has_tty="" # File output does not support tty colors.
-        else
-            echo "Output file $1 is not writable."
-            exit 1
-        fi
+        __logger_output="$1"
+        __check_tty # We need to check again.
         ;;
     esac
+}
+
+# Print to logger output.
+prt() {
+    # If __logger_output is 1 or 2, we just echo to stdout or stderr.
+    if [[ "$__logger_output" == "1" || "$__logger_output" == "2" ]]; then
+        echo "$@" >&"$__logger_output"
+        return
+    fi
+    # Otherwise, we append to the file.
+    echo "$@" >>"$__logger_output"
 }
 
 # Default to stderr.
@@ -277,11 +295,45 @@ logfmt_print() {
         key=""
     fi
 
-    echo "$log_msg" >>"$__logger_output"
+    prt "$log_msg"
 }
 
 logfmt_print_with_timestamp() {
     logfmt_print time "$(__datestr)" "$@"
+}
+
+human_readable_prefix() {
+    local level="$1"
+    local msg="$2"
+    prt -n "$(__faint_datestr) "
+    case "$level" in
+    debug)
+        prt -n "$(__print_color_bold)"
+        prt -n "DEBU "
+        ;;
+    info)
+        prt -n "$(__print_color_bold_blue)"
+        prt -n "INFO "
+        ;;
+    warn)
+        prt -n "$(__print_color_bold_yellow)"
+        prt -n "WARN "
+        ;;
+    error)
+        prt -n "$(__print_color_bold_red)"
+        prt -n "ERRO "
+        ;;
+    fatal)
+        prt -n "$(__print_color_bold_red)"
+        prt -n "FATA "
+        ;;
+    *)
+        prt -n "$(__print_color_bold)"
+        prt -n "UNKN "
+        ;;
+    esac
+    prt -n "$(__print_color_reset)"
+    prt -n "$(__logfmt_escape "$msg") "
 }
 
 debug() {
@@ -290,11 +342,7 @@ debug() {
     fi
 
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__faint_datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_bold)" >>"$__logger_output"
-        echo -n "DEBU " >>"$__logger_output"
-        echo -n "$(__print_color_reset)" >>"$__logger_output"
-        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        human_readable_prefix debug "$1"
         shift
         logfmt_print "$@"
         return
@@ -309,11 +357,7 @@ info() {
     fi
 
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__faint_datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_bold_blue)" >>"$__logger_output"
-        echo -n "INFO " >>"$__logger_output"
-        echo -n "$(__print_color_reset)" >>"$__logger_output"
-        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        human_readable_prefix info "$1"
         shift
         logfmt_print "$@"
         return
@@ -328,11 +372,7 @@ warn() {
     fi
 
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__faint_datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_bold_yellow)" >>"$__logger_output"
-        echo -n "WARN " >>"$__logger_output"
-        echo -n "$(__print_color_reset)" >>"$__logger_output"
-        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        human_readable_prefix warn "$1"
         shift
         logfmt_print "$@"
         return
@@ -347,11 +387,7 @@ error() {
     fi
 
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__faint_datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_bold_red)" >>"$__logger_output"
-        echo -n "ERRO " >>"$__logger_output"
-        echo -n "$(__print_color_reset)" >>"$__logger_output"
-        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        human_readable_prefix error "$1"
         shift
         logfmt_print "$@"
         return
@@ -362,11 +398,7 @@ error() {
 
 fatal() {
     if [[ -n $__output_has_tty ]]; then
-        echo -n "$(__faint_datestr) " >>"$__logger_output"
-        echo -n "$(__print_color_bold_red)" >>"$__logger_output"
-        echo -n "FATA " >>"$__logger_output"
-        echo -n "$(__print_color_reset)" >>"$__logger_output"
-        echo -n "$(__logfmt_escape "$1") " >>"$__logger_output"
+        human_readable_prefix fatal "$1"
         shift
         logfmt_print "$@"
         exit 1
