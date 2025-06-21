@@ -362,8 +362,8 @@ defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
 # Enable spring loading for directories
 defaults write NSGlobalDomain com.apple.springing.enabled -bool true
 
-# Remove the spring loading delay for directories
-defaults write NSGlobalDomain com.apple.springing.delay -float 0
+# Remove the spring loading delay for directories (when you drag a file onto a dir and opens the dir)
+# defaults write NSGlobalDomain com.apple.springing.delay -float 0
 
 # Avoid creating .DS_Store files on network or USB volumes
 defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
@@ -863,6 +863,16 @@ defaults write com.apple.appstore WebKitDeveloperExtras -bool true
 
 # Enable Debug Menu in the Mac App Store
 defaults write com.apple.appstore ShowDebugMenu -bool true
+
+# Disable In-App Ratings and Reviews
+defaults write com.apple.appstore InAppReviewEnabled -bool false
+
+# Disable Video Autoplay
+defaults write com.apple.appstore UserSetAutoPlayVideoSetting -bool true
+defaults write com.apple.appstore AutoPlayVideoSetting -string off
+
+# Disable automatic download of in-app content
+defaults write com.apple.appstored BackgroundAssetDownloadsEnabled -bool false
 
 ###############################################################################
 # Mac Updates                                                                 #
