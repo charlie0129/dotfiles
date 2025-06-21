@@ -33,7 +33,7 @@ alias cloc1="cloc --exclude-dir=node_modules,.idea,.mvn,.git --exclude-ext=.log,
 
 # Zstandard related
 alias tzst='tar --preserve-permissions --use-compress-program "zstd -T0" -cf'
-alias untzst='tar --preserve-permissions --use-compress-program zstd -xf'
+alias untzst='tar --preserve-permissions --use-compress-program unzstd -xf'
 
 # Short for docker compose
 if type docker-compose > /dev/null 2>&1; then
