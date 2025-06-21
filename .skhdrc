@@ -45,15 +45,15 @@
 # Quick Application launches
 # hyper - t: open -a "iTerm";
 hyper - b: open -a "Vivaldi";
-# hyper - e: open -a "CotEditor"; # For ScratchPad
+hyper - e: open -a "CotEditor";
 hyper - s: open -a "Safari";
 hyper - l: open -a "Lens";
 hyper - w: open -a "WeChat";
 hyper - q: open -a "QQ";
 hyper - f: open -a "Lark";
 hyper - g: open -a "GoLand";
-# hyper + v is occupied by other programs.
+# hyper + v is occupied by Pure Paste to paste with no format.
 hyper - m: open -a "MongoDB Compass";
 hyper - p: open -a "Preview";
 
-hyper - r: sleep 0.2; killall Hyperkey; sleep 0.5; open -a "Hyperkey";
+# ctrl + opt + shift - r: sleep 0.2; killall Hyperkey; sleep 0.5; open -a "Hyperkey";
