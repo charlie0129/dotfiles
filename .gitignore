@@ -8,4 +8,4 @@ __pycache__
 test.sh
 
 # Custom resources
-custom-omz-plugins.sh
+/custom-omz-plugins.sh
