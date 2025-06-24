@@ -9,6 +9,8 @@ osascript -e 'tell application "System Settings" to quit'
 # Ask for the administrator password upfront
 sudo -v
 
+echo "Applying settings..."
+
 ###############################################################################
 # General UI/UX                                                               #
 ###############################################################################
@@ -32,7 +34,7 @@ defaults write com.apple.ncprefs content_visibility -int 2
 defaults write com.apple.donotdisturbd disableCloudSync -int 1
 
 # Disable Gatekeeper
-sudo spctl --master-disable
+sudo spctl --master-disable 2>&1 | grep -vi "needs to be confirmed"
 sudo defaults write /Library/Preferences/com.apple.security GKAutoRearm -bool NO
 
 # Disable auto boot
@@ -41,6 +43,8 @@ sudo nvram AutoBoot="%00"
 # Enable verbose booting, disable darkwake, keep symbols on crash, enable arm64e abi. SIP must be disabled before running this." &&
 if [[ "$(csrutil status)" =~ "disabled" ]]; then
     sudo nvram boot-args="-v darkwake=0 keepsyms=1 -arm64e_preview_abi"
+else
+    echo "==> SIP is enabled. Skipping boot args configuration."
 fi
 
 # Disable screen saver at the login screen. Useful to resolve screen saver lockup issues when in a VNC session
@@ -77,7 +81,7 @@ defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
 defaults write com.apple.LaunchServices LSQuarantine -bool false
 
 # Remove duplicates in the “Open With” menu (also see `lscleanup` alias)
-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user
+# /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user
 
 # Display ASCII control characters using caret notation in standard text views
 # Try e.g. `cd /tmp; unidecode "\x{0000}" > cc.txt; open -e cc.txt`
@@ -234,6 +238,20 @@ sudo defaults write /Library/Preferences/com.apple.loginwindow showInputMenu -bo
 # Energy saving                                                               #
 ###############################################################################
 
+# Disk sleep (macOS default)
+sudo pmset -b disksleep 10
+sudo pmset -c disksleep 10
+
+# Display sleep: 10m battery, 20m AC
+sudo pmset -b displaysleep 10
+sudo pmset -c displaysleep 20
+
+# Enable sleep (macOS default)
+sudo pmset -a sleep 1
+
+# No network over sleep
+sudo pmset -a networkoversleep 0
+
 # Disable standby
 sudo pmset -a standby 0
 
@@ -247,7 +265,7 @@ sudo pmset -a ttyskeepawake 0
 sudo pmset -a proximitywake 0
 
 # Disable tcpkeepalive
-sudo pmset -a tcpkeepalive 0
+sudo pmset -a tcpkeepalive 0 2>&1 | grep -vi warning # Do not show warnings like "Warning: This option disables TCP Keep Alive mechanism when sytem is sleeping. This will result in some critical features like 'Find My Mac' not to function properly."
 
 # Disable powernap
 sudo pmset -a powernap 0
@@ -267,15 +285,7 @@ sudo pmset -a hibernatemode 0
 # Do not dim display on battery
 sudo pmset -b lessbright 0
 
-# Disk sleep only on battery
-sudo pmset -b disksleep 10
-sudo pmset -c disksleep 0 # disable on AC
-
-# Display sleep: 10m battery, 20m AC
-sudo pmset -b displaysleep 10
-sudo pmset -c displaysleep 20
-
-if [ -f /private/var/vm/sleepimage ]; then
+if [ -f /private/var/vm/sleepimage ] && ! /bin/ls -lO /private/var/vm/sleepimage | grep -q uchg; then
     # Remove the sleep image file to save disk space
     sudo rm /private/var/vm/sleepimage 2>/dev/null
     # Create a zero-byte file instead…
@@ -413,7 +423,7 @@ defaults write com.apple.finder WarnOnEmptyTrash -bool false
 defaults write com.apple.NetworkBrowser BrowseAllInterfaces -bool true
 
 # Show the ~/Library folder
-chflags nohidden ~/Library && xattr -d com.apple.FinderInfo ~/Library
+# chflags nohidden ~/Library && xattr -d com.apple.FinderInfo ~/Library
 
 # Show the /Volumes folder
 sudo chflags nohidden /Volumes
@@ -915,13 +925,11 @@ defaults write com.apple.messageshelper.MessageController SOInputLineSettings -d
 # END                                                                         #
 ###############################################################################
 
-echo "There are a few more settings that I am not able to change. Go ahead and change them manually:"
-echo "  - Wi-Fi -> Ask to join networks / Ask to join hotspots -> OFF (annoying)"
-echo "  - General -> Software Update -> Automatic Updates -> i -> Turn Everything OFF"
-echo "  - Displays -> Advanced -> Show resolution as list -> ON"
-echo "  - Soptlight -> Only keep Applications, deselect everything (we will use Alfred)"
-echo "  - Notifications -> Allow notifications when the display is sleeping -> OFF"
-echo "  - Notifications -> Allow notifications when the screen is locked -> OFF (avoid constantly waking screen)"
-echo "  - Notifications -> Allow notifications when mirroring or sharing the display -> OFF"
+echo
+echo "Settings have been applied."
+echo
 
-echo "Completed. It's expected that you may find System Settings not behaving like normal. Reboot your Mac."
+./manualsettings.sh
+
+echo
+echo -e  "Some settings requires a reboot to take effect. \033[1mReboot your Mac when you have completed everything above.\033[0m"
