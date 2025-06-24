@@ -8,9 +8,4 @@ __pycache__
 test.sh
 
 # Custom resources
-alias/custom.sh
-env/custom.sh
-func/custom.sh
-bin/custom/*
-!bin/custom/.gitkeep
 custom-omz-plugins.sh
