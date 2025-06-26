@@ -50,23 +50,37 @@ ks() {
 }
 
 # Git Clone repository into a proper directory structure.
-# For example, `git_clone https://github.com/charlie0129/dotfiles.git` 
+# For example, `git_clone https://github.com/charlie0129/dotfiles.git`
 # will clone the repository into `~/src/github.com/charlie0129/dotfiles`.
 git_clone() {
     if [ -z "$1" ]; then
-        echo "Usage: git_clone <repo>"
+        echo "Usage: git_clone [<git-clone-options] [--] <repo>" >&2
         return 1
     fi
 
-    local dir="$1"
-    dir=$(echo "${dir}" | sed 's_^.*://__g')
-    dir=${dir//.git/}
-    echo "Will clone to ~/src/$dir"
+    # get last arg, this is the URL to clone
+    # Example: https://github.com/charlie0129/dotfiles.git
+    local url="${@: -1}"
+    if ! [[ "$url" =~ ^https?:// ]]; then
+        echo "Error: repo must start with http:// or https://" >&2
+        echo >&2
+        echo "Usage: git_clone [<git-clone-options] [--] <repo>" >&2
+        return 1
+    fi
+    # Example: github.com/charlie0129/dotfiles.git
+    url=$(echo "${url}" | sed 's_^.*://__g')
+    # Example: github.com/charlie0129/dotfiles
+    local dir=${url//.git/}
+
+    echo "Will clone to ~/src/$dir" >&2
+    # Example: github.com/charlie0129
     dir=$(dirname "${dir}")
 
-    local dir="$HOME/src/$dir"
-    mkdir -p "$dir"
-    cd "$dir" || return
+    # Example: $HOME/src/github.com/charlie0129
+    dir="$HOME/src/$dir"
+    mkdir -p "$dir" || return 1
+    cd "$dir" || return 1
 
-    git clone --recurse-submodules "$1"
+    # Example: $HOME/src/github.com/charlie0129/dotfiles
+    git clone "$@"
 }
