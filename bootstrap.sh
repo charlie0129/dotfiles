@@ -45,6 +45,11 @@ fi
 # Link files
 cd "$DOTFILES_ROOT" && link_files && cd "$DOTFILES_ROOT"
 
+# Restore custom.sh's
+for d in env func; do
+    cp $d/.custom.sh $d/custom.sh
+done
+
 # Add +x permissions to all executables
 bash bin/fix-permission
 
