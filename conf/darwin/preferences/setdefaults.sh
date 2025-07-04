@@ -48,10 +48,10 @@ else
 fi
 
 # Disable screen saver at the login screen. Useful to resolve screen saver lockup issues when in a VNC session
+sudo defaults write /Library/Preferences/com.apple.screensaver loginWindowIdleTime 0
 
 # Disable the over-the-top focus ring animation
 defaults write NSGlobalDomain NSUseAnimatedFocusRing -bool false
-sudo defaults write /Library/Preferences/com.apple.screensaver loginWindowIdleTime 0
 
 # Adjust toolbar title rollover delay
 defaults write NSGlobalDomain NSToolbarTitleViewRolloverDelay -float 0
