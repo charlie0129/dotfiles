@@ -1,0 +1,184 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "telemetry": {
+    "metrics": false,
+    "diagnostics": false
+  },
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "One Dark"
+  },
+  "buffer_font_size": 13,
+  // The name of a font to use for rendering text in the editor
+  "buffer_font_family": "MesloLGS Nerd Font",
+  // The OpenType features to enable for text in the editor.
+  "buffer_font_features": {
+    // Disable ligatures:
+    "calt": false
+  },
+  "ui_font_size": 14,
+  // The name of a font to use for rendering text in the UI
+  // You can set this to ".SystemUIFont" to use the system font
+  "ui_font_family": ".SystemUIFont",
+  // The default font size for text in the agent panel
+  "agent_font_size": 14,
+  // Active pane styling settings.
+  "active_pane_modifiers": {
+    // Inset border size of the active pane, in pixels.
+    "border_size": 2
+  },
+  // Whether to enable vim modes and key bindings.
+  "vim_mode": false,
+  // Whether to use the system provided dialogs for Open and Save As.
+  // When set to false, Zed will use the built-in keyboard-first pickers.
+  "use_system_path_prompts": false,
+  // Whether to use the system provided dialogs for prompts, such as confirmation
+  // prompts.
+  // When set to false, Zed will use its built-in prompts. Note that on Linux,
+  // this option is ignored and Zed will always use the built-in prompts.
+  "use_system_prompts": false,
+  // Show method signatures in the editor, when inside parentheses.
+  "auto_signature_help": true,
+  // Whether to allow drag and drop text selection in buffer.
+  "drag_and_drop_selection": false,
+  // Character counts at which to show wrap guides in the editor.
+  "wrap_guides": [80, 120],
+  // Controls where the `editor::Rewrap` action is allowed in the current language scope.
+  //
+  // This setting can take three values:
+  //
+  // 1. Only allow rewrapping in comments:
+  //    "in_comments"
+  // 2. Only allow rewrapping in the current selection(s):
+  //    "in_selections"
+  // 3. Allow rewrapping anywhere:
+  //    "anywhere"
+  //
+  // When using values other than `in_comments`, it is possible for the rewrapping to produce code
+  // that is syntactically invalid. Keep this in mind when selecting which behavior you would like
+  // to use.
+  //
+  // Note: This setting has no effect in Vim mode, as rewrap is already allowed everywhere.
+  "allow_rewrap": "in_selections",
+  // Whether to show tabs and spaces in the editor.
+  // This setting can take four values:
+  //
+  // 1. Draw tabs and spaces only for the selected text (default):
+  //    "selection"
+  // 2. Do not draw any tabs or spaces:
+  //    "none"
+  // 3. Draw all invisible symbols:
+  //    "all"
+  // 4. Draw whitespaces at boundaries only:
+  //    "boundary"
+  // 5. Draw whitespaces only after non-whitespace characters:
+  //    "trailing"
+  // For a whitespace to be on a boundary, any of the following conditions need to be met:
+  // - It is a tab
+  // - It is adjacent to an edge (start or end)
+  // - It is adjacent to a whitespace (left or right)
+  "show_whitespaces": "all",
+  // Scrollbar related settings
+  "scrollbar": {
+    // Which diagnostic indicators to show in the scrollbar:
+    //  - "none" or false: do not show diagnostics
+    //  - "error": show only errors
+    //  - "warning": show only errors and warnings
+    //  - "information": show only errors, warnings, and information
+    //  - "all" or true: show all diagnostics
+    "diagnostics": "warning"
+  },
+  "indent_guides": {
+    // Whether to show indent guides in the editor.
+    "enabled": true,
+    // The width of the indent guides in pixels, between 1 and 10.
+    "line_width": 1,
+    // The width of the active indent guide in pixels, between 1 and 10.
+    "active_line_width": 2,
+    // Determines how indent guides are colored.
+    // This setting can take the following three values:
+    //
+    // 1. "disabled"
+    // 2. "fixed"
+    // 3. "indent_aware"
+    "coloring": "indent_aware",
+    // Determines how indent guide backgrounds are colored.
+    // This setting can take the following two values:
+    //
+    // 1. "disabled"
+    // 2. "indent_aware"
+    "background_coloring": "indent_aware"
+  },
+  // The number of lines to keep above/below the cursor when scrolling with the keyboard
+  "vertical_scroll_margin": 10,
+  // If 'search_wrap' is disabled, search result do not wrap around the end of the file.
+  "search_wrap": false,
+  // When to populate a new search's query based on the text under the cursor.
+  // This setting can take the following three values:
+  //
+  // 1. Always populate the search query with the word under the cursor (default).
+  //    "always"
+  // 2. Only populate the search query when there is text selected
+  //    "selection"
+  // 3. Never populate the search query
+  //    "never"
+  "seed_search_query_from_cursor": "selection",
+  // When enabled, automatically adjusts search case sensitivity based on your query.
+  // If your search query contains any uppercase letters, the search becomes case-sensitive;
+  // if it contains only lowercase letters, the search becomes case-insensitive.
+  "use_smartcase_search": true,
+  "project_panel": {
+    // Spacing between worktree entries in the project panel. Can be 'comfortable' or 'standard'.
+    "entry_spacing": "standard"
+  },
+  // When enabled, show voting thumbs for feedback on agent edits.
+  "enable_feedback": false,
+  // When to automatically save edited buffers. This setting can
+  // take four values.
+  //
+  // 1. Never automatically save:
+  //     "autosave": "off",
+  // 2. Save when changing focus away from the Zed window:
+  //     "autosave": "on_window_change",
+  // 3. Save when changing focus away from a specific buffer:
+  //     "autosave": "on_focus_change",
+  // 4. Save when idle for a certain amount of time:
+  //     "autosave": { "after_delay": {"milliseconds": 500} },
+  "autosave": "on_focus_change",
+  // Maximum number of tabs per pane. Unset for unlimited.
+  "max_tabs": 8,
+  "tabs": {
+    // Show git status colors in the editor tabs.
+    "git_status": true
+  },
+  // Automatically update Zed. This setting may be ignored on Linux if
+  // installed through a package manager.
+  "auto_update": false,
+  "git": {
+    // Control whether the git blame information is shown inline,
+    // in the currently focused line.
+    "inline_blame": {
+      "enabled": true,
+      // Sets a delay after which the inline blame information is shown.
+      // Delay is restarted with every cursor movement.
+      "delay_ms": 600,
+      //
+      // Whether or not to display the git commit summary on the same line.
+      "show_commit_summary": true
+      //
+      // The minimum column number to show the inline blame information at
+      // "min_column": 0
+    }
+  },
+  "terminal": {
+    "line_height": "standard"
+  }
+}
