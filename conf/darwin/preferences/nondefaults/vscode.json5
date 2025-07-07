@@ -1,0 +1,560 @@
+{
+  "workbench.iconTheme": "vscode-icons",
+  "vsicons.dontShowNewVersionMessage": true,
+  "workbench.startupEditor": "none",
+  "editor.minimap.enabled": false,
+  "editor.renderWhitespace": "all",
+  "editor.stickyScroll.enabled": true,
+  "workbench.tree.enableStickyScroll": true,
+  "editor.fontFamily": "'MesloLGS Nerd Font', Monaco, 'Courier New', monospace",
+  "editor.fontVariations": true,
+  "editor.fontWeight": "normal",
+  "editor.fontLigatures": true,
+  // "terminal.integrated.rendererType": "dom",
+  "editor.suggestSelection": "first",
+  "window.autoDetectColorScheme": true,
+  "editor.minimap.renderCharacters": false,
+  "C_Cpp.intelliSenseCacheSize": 1024,
+  "files.autoGuessEncoding": true,
+  // "terminal.explorerKind": "integrated",
+  "code-runner.saveFileBeforeRun": true,
+  "code-runner.runInTerminal": true,
+  "update.mode": "manual",
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "editor.occurrencesHighlight": "singleFile",
+  "code-runner.executorMap": {
+    "javascript": "node",
+    "java": "cd $dir && javac $fileName && java $fileNameWithoutExt",
+    "c": "cd $dir && gcc $fileName -o $fileNameWithoutExt && $dir$fileNameWithoutExt",
+    "cpp": "cd $dir && g++ -std=c++17 $fileName -o $fileNameWithoutExt && $dir$fileNameWithoutExt",
+    "objective-c": "cd $dir && gcc -framework Cocoa $fileName -o $fileNameWithoutExt && $dir$fileNameWithoutExt",
+    "php": "php",
+    "python": "python3 -u",
+    "perl": "perl",
+    "perl6": "perl6",
+    "ruby": "ruby",
+    "go": "go run",
+    "lua": "lua",
+    "groovy": "groovy",
+    "powershell": "powershell -ExecutionPolicy ByPass -File",
+    "bat": "cmd /c",
+    "shellscript": "bash",
+    "fsharp": "fsi",
+    "csharp": "scriptcs",
+    "vbscript": "cscript //Nologo",
+    "typescript": "ts-node",
+    "coffeescript": "coffee",
+    "scala": "scala",
+    "swift": "swift",
+    "julia": "julia",
+    "crystal": "crystal",
+    "ocaml": "ocaml",
+    "r": "Rscript",
+    "applescript": "osascript",
+    "clojure": "lein exec",
+    "haxe": "haxe --cwd $dirWithoutTrailingSlash --run $fileNameWithoutExt",
+    "rust": "cd $dir && rustc $fileName && $dir$fileNameWithoutExt",
+    "racket": "racket",
+    "scheme": "csi -script",
+    "ahk": "autohotkey",
+    "autoit": "autoit3",
+    "dart": "dart",
+    "pascal": "cd $dir && fpc $fileName && $dir$fileNameWithoutExt",
+    "d": "cd $dir && dmd $fileName && $dir$fileNameWithoutExt",
+    "haskell": "runhaskell",
+    "nim": "nim compile --verbosity:0 --hints:off --run",
+    "lisp": "sbcl --script",
+    "kit": "kitc --run",
+    "v": "v run",
+    "sass": "sass --style expanded",
+    "scss": "scss --style expanded"
+  },
+  "astyle.cmd_options": [
+    "--style=bsd",
+    "--convert-tabs",
+    "--indent=spaces=4",
+    "--attach-closing-while",
+    "--indent-classes",
+    "--indent-switches",
+    // "--indent-cases",
+    "--indent-namespaces",
+    "--indent-preproc-block",
+    "--indent-preproc-define",
+    "--indent-preproc-cond",
+    "--indent-col1-comments",
+    "--min-conditional-indent=0",
+    // "--break-blocks",
+    "--pad-oper",
+    "--pad-header",
+    "--align-pointer=name",
+    "--align-reference=name",
+    "--break-one-line-headers",
+    // "--add-braces",
+    "--attach-return-type"
+  ],
+  "[cpp]": {
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+  },
+  "[c]": {
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+  },
+  "files.autoSave": "onFocusChange",
+  "workbench.preferredLightColorTheme": "Atom One Light",
+  "workbench.fontAliasing": "auto",
+  "git.enableSmartCommit": true,
+  "fileheader.Author": "Charlie Chiang",
+  "fileheader.LastModifiedBy": "Charlie Chiang",
+  "fileheader.tpl": "/*\n * @Author: {author} \n * @Date: {createTime} \n * @Last Modified by: {lastModifiedBy} \n * @Last Modified time: {updateTime} \n */\n",
+  "java.configuration.checkProjectSettingsExclusions": false,
+  "java.configuration.runtimes": [],
+  "terminal.external.osxExec": "iTerm.app",
+  "psi-header.variables": [
+    [
+      "authoremail",
+      "charlie_c_0129@outlook.com"
+    ]
+  ],
+  "psi-header.templates": [
+    {
+      "language": "*",
+      "template": [
+        "File: <<filename>>",
+        "Project: <<projectname>>",
+        "File Created: <<filecreated('YYYY-MM-DD h:mm:ss A')>>",
+        "Author: <<author>> (<<authoremail>>)",
+        "-----",
+        "Last Modified: <<dateformat('YYYY-MM-DD h:mm:ss A')>>",
+        "Modified By: <<author>> (<<authoremail>>)",
+        "-----",
+        "Copyright (c) <<year>> <<author>>"
+      ]
+    }
+  ],
+  "cSpell.userWords": [
+    "bson",
+    "bupt",
+    "chiang",
+    "chmod",
+    "dotfiles",
+    "istio",
+    "kube",
+    "Kubernetes",
+    "kubevela",
+    "mkdir",
+    "nlohmann",
+    "Promela",
+    "stoi",
+    "traefik",
+    "weapp",
+    "xsync"
+  ],
+  "git.autofetch": true,
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "C_Cpp.default.cppStandard": "c++20",
+  "C_Cpp.default.cStandard": "c11",
+  "C_Cpp.default.intelliSenseMode": "macos-clang-x64",
+  "explorer.confirmDelete": false,
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "eslint.probe": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "html",
+    "vue",
+    "markdown"
+  ],
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "markdown.preview.fontSize": 12,
+  "editor.emptySelectionClipboard": false,
+  "workbench.editorAssociations": {
+    "*.ipynb": "jupyter.notebook.ipynb"
+  },
+  "editor.fontSize": 13,
+  "latex-workshop.bibtex-format.tab": "4 spaces",
+  "latex-workshop.latex.autoBuild.interval": 10000,
+  "latex-workshop.latex.autoBuild.run": "never",
+  "latex-workshop.latex.tools": [
+    {
+      "name": "xelatex",
+      "command": "xelatex",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "gnu-make",
+      "command": "make",
+      "args": []
+    },
+    {
+      "name": "xelatex-with-shell-escape",
+      "command": "xelatex",
+      "args": [
+        "--shell-escape",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "xelatex-latexmk",
+      "command": "latexmk",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-xelatex",
+        "-outdir=%OUTDIR%",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "xelatex-latexmk-with-shell-escape",
+      "command": "latexmk",
+      "args": [
+        "--shell-escape",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-xelatex",
+        "-outdir=%OUTDIR%",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "pdflatex-with-shell-escape",
+      "command": "pdflatex",
+      "args": [
+        "--shell-escape",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "pdflatex-latexmk",
+      "command": "latexmk",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-pdf",
+        "-outdir=%OUTDIR%",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "pdflatex-latexmk-with-shell-escape",
+      "command": "latexmk",
+      "args": [
+        "--shell-escape",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-pdf",
+        "-outdir=%OUTDIR%",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "latexmk",
+      "command": "latexmk",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-pdf",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "bibtex",
+      "command": "bibtex",
+      "args": [
+        "%DOCFILE%"
+      ]
+    },
+  ],
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "GNU Make",
+      "tools": [
+        "gnu-make"
+      ]
+    },
+    {
+      "name": "XeLaTeX",
+      "tools": [
+        "xelatex"
+      ]
+    },
+    {
+      "name": "XeLaTeX with Shell Escape",
+      "tools": [
+        "xelatex-with-shell-escape"
+      ]
+    },
+    {
+      "name": "XeLaTeX Auto",
+      "tools": [
+        "xelatex-latexmk"
+      ]
+    },
+    {
+      "name": "XeLaTeX Auto with Shell Escape",
+      "tools": [
+        "xelatex-latexmk-with-shell-escape"
+      ]
+    },
+    {
+      "name": "XeLaTeX -> BibTeX -> XeLaTeX*2",
+      "tools": [
+        "xelatex",
+        "bibtex",
+        "xelatex",
+        "xelatex"
+      ]
+    },
+    {
+      "name": "PDFLaTeX",
+      "tools": [
+        "pdflatex"
+      ]
+    },
+    {
+      "name": "PDFLaTeX with Shell Escape",
+      "tools": [
+        "pdflatex-with-shell-escape"
+      ]
+    },
+    {
+      "name": "PDFLaTeX Auto",
+      "tools": [
+        "pdflatex-latexmk"
+      ]
+    },
+    {
+      "name": "PDFLaTeX Auto with Shell Escape",
+      "tools": [
+        "pdflatex-latexmk-with-shell-escape"
+      ]
+    },
+    {
+      "name": "PDFLaTeX -> BibTeX -> PDFLaTeX*2",
+      "tools": [
+        "pdflatex",
+        "bibtex",
+        "pdflatex",
+        "pdflatex"
+      ]
+    },
+    {
+      "name": "latexmk",
+      "tools": [
+        "latexmk"
+      ]
+    },
+    {
+      "name": "BibTeX",
+      "tools": [
+        "bibtex"
+      ]
+    },
+  ],
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.latex.recipe.default": "lastUsed",
+  "latex-workshop.synctex.afterBuild.enabled": true,
+  "latex-workshop.bibtex-fields.sort.enabled": true,
+  "terminal.integrated.inheritEnv": false,
+  "dart.flutterSdkPath": "/Users/charlie/flutter",
+  "telemetry.enableTelemetry": false,
+  "workbench.preferredDarkColorTheme": "Ayu Mojave",
+  "workbench.colorTheme": "Atom One Light",
+  "redhat.telemetry.enabled": false,
+  "terminal.integrated.tabs.enabled": true,
+  "security.workspace.trust.enabled": false,
+  "explorer.confirmDragAndDrop": false,
+  "terminal.integrated.fontSize": 13,
+  "window.restoreWindows": "none",
+  "workbench.tree.indent": 16,
+  "cSpell.enableFiletypes": [
+    "shellscript"
+  ],
+  "gitlens.advanced.messages": {
+    "suppressGitMissingWarning": true
+  },
+  "vim.highlightedyank.enable": true,
+  "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle: WebKit, UseTab: Never, IndentWidth: 4, TabWidth: 4}",
+  "cSpell.language": "en,en-US",
+  "editor.accessibilitySupport": "off",
+  "editor.inlineSuggest.enabled": true,
+  "extensions.ignoreRecommendations": true,
+  "github.copilot.enable": {
+    "*": false,
+    "plaintext": true,
+    "markdown": true,
+    "scminput": false,
+    "yaml": true,
+    "cpp": true,
+    "shellscript": true,
+    "python": true,
+    "makefile": true,
+    "go": true,
+    "javascript": true,
+    "typescriptreact": true,
+    "objective-c": true
+  },
+  "git.alwaysSignOff": true,
+  "editor.multiCursorModifier": "ctrlCmd",
+  "vim.surround": true,
+  "vim.vimrc.enable": true,
+  // "editor.lineNumbers": "relative",
+  "vim.easymotion": true,
+  "vim.incsearch": true,
+  "vim.useSystemClipboard": true,
+  "vim.useCtrlKeys": true,
+  "vim.hlsearch": true,
+  "vim.insertModeKeyBindings": [
+    {
+      "before": [
+        "j",
+        "j"
+      ],
+      "after": [
+        "<Esc>"
+      ]
+    }
+  ],
+  "vim.normalModeKeyBindingsNonRecursive": [
+    {
+      "before": [
+        "<leader>",
+        "d"
+      ],
+      "after": [
+        "d",
+        "d"
+      ]
+    },
+    {
+      "before": [
+        "<C-n>"
+      ],
+      "commands": [
+        ":nohl"
+      ]
+    },
+    {
+      "before": [
+        "K"
+      ],
+      "commands": [
+        "lineBreakInsert"
+      ],
+      "silent": true
+    }
+  ],
+  "vim.leader": "<space>",
+  "vim.handleKeys": {
+    "<C-a>": false,
+    "<C-f>": false
+  },
+  "terminal.integrated.env.osx": {
+    "FIG_NEW_SESSION": "1"
+  },
+  "vim.visualModeKeyBindingsNonRecursive": [
+    {
+      "before": [
+        "p"
+      ],
+      "after": [
+        "p",
+        "`",
+        "[",
+        "v",
+        "`",
+        "]",
+        "h",
+        "y",
+        "<Esc>"
+      ]
+    }
+  ],
+  "github.gitAuthentication": false,
+  "terminal.integrated.enableMultiLinePasteWarning": false,
+  "svelte.enable-ts-plugin": true,
+  "workbench.layoutControl.enabled": false,
+  "C_Cpp.intelliSenseEngine": "Disabled",
+  "terminal.integrated.scrollback": 9000,
+  "window.commandCenter": false,
+  "workbench.editor.empty.hint": "hidden",
+  "terminal.integrated.stickyScroll.enabled": true,
+  "[dockerfile]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+  },
+  "[shellscript]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "diffEditor.hideUnchangedRegions.enabled": true,
+  "zig.initialSetupDone": true,
+  "breadcrumbs.enabled": false,
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "name": "envKeys",
+        "scope": "string.quoted.single.ini,constant.numeric.ini,string.quoted.double.ini",
+        "settings": {
+          "foreground": "#19354900"
+        }
+      }
+    ]
+  },
+  "editor.unicodeHighlight.invisibleCharacters": false,
+  "remote.autoForwardPorts": false,
+  "window.title": "${activeEditorMedium}${separator}${rootName}${separator}${profileName}",
+  "database-client.autoSync": true,
+  "yaml.schemas": {
+    "kubernetes": "*.yaml"
+  },
+  "editor.unicodeHighlight.ambiguousCharacters": false,
+  "editor.rulers": [
+    80,
+    120
+  ],
+  "go.toolsEnvVars": {
+    // "GOOS": "linux",
+    "GOPROXY": "https://goproxy.cn,direct",
+  },
+}
