@@ -7,7 +7,7 @@
 	<key>Clicking</key>
 	<true/>
 	<key>DragLock</key>
-	<integer>0</integer>
+	<false/>
 	<key>Dragging</key>
 	<false/>
 	<key>FirstClickThreshold</key>
