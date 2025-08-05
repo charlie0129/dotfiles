@@ -51,7 +51,9 @@ for editor in nvim vim vi nano; do
 done
 
 # PAGER config. Useful less.
-(( $+commands[less] )) && export PAGER="less --mouse --wheel-lines=2 --ignore-case --LONG-PROMPT --tabs=4 --RAW-CONTROL-CHARS --use-color --color=d+g --color=u+y"
+if type less >/dev/null 2>&1; then
+    export PAGER="less --mouse --wheel-lines=2 --ignore-case --LONG-PROMPT --tabs=4 --RAW-CONTROL-CHARS --use-color --color=d+g --color=u+y"
+fi
 
 export MANROFFOPT="-c"
 
