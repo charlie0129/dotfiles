@@ -22,9 +22,6 @@ alias ll='ls -lhF'
 alias la='ls -lAhF'
 alias lsa='ls -lahF'
 
-# htop with sudo as default
-alias htop='sudo htop'
-
 # Git
 alias gcl1='git clone --recurse-submodules --shallow-submodules --depth=1'
 
