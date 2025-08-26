@@ -8,6 +8,8 @@
 	<true/>
 	<key>defaultTheme</key>
 	<string>Anura</string>
+	<key>findUsesRegularExpression</key>
+	<true/>
 	<key>font</key>
 	<data>
 	YnBsaXN0MDDUAQIDBAUGBwpYJHZlcnNpb25ZJGFyY2hpdmVyVCR0b3BYJG9iamVjdHMS
@@ -56,6 +58,10 @@
 	<real>1.0</real>
 	<key>pinsThemeAppearance</key>
 	<false/>
+	<key>replaceHistory</key>
+	<array>
+		<string>\n </string>
+	</array>
 	<key>selectedInspectorPaneIndex</key>
 	<integer>0</integer>
 	<key>selectionInstanceHighlightDelay</key>
