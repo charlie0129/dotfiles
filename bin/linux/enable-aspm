@@ -134,7 +134,7 @@ Usage:
                      ^        ^-- endpoint
                      ^-- root complex
 
-ASPM modes:
+ASPM settings:
 
     Hex  Binary  Meaning
     -------------------------
@@ -145,13 +145,13 @@ ASPM modes:
 
 For more details refer to:
 
-https://www.reddit.com/r/debian/comments/8c6ytj/active_state_power_management_aspm/
-http://wireless.kernel.org/en/users/Documentation/ASPM
+    - https://www.reddit.com/r/debian/comments/8c6ytj/active_state_power_management_aspm/
+    - http://wireless.kernel.org/en/users/Documentation/ASPM
 EOF
 )
 
 if [[ -z "$ROOT_COMPLEX" || -z "$ENDPOINT" || -z "$ASPM_SETTING" ]]; then
-    echo "Usage: $(basename "$0") <root_complex BDF> <endpoint BDF> <ASPM mode>"
+    echo "Usage: $(basename "$0") <root_complex BDF> <endpoint BDF> <ASPM setting>"
     echo "Example: $(basename "$0") 00:1d.2 0a:00.0 2"
     echo
     echo "$HELP_MESSAGE"
