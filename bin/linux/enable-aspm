@@ -93,14 +93,6 @@
 ROOT_COMPLEX="${1:-}"
 ENDPOINT="${2:-}"
 
-if [[ -z "$ROOT_COMPLEX" || -z "$ENDPOINT" ]]; then
-    echo "Usage: $(basename "$0") <root_complex BDF> <endpoint BDF>"
-    echo "Example: $(basename "$0") 00:1d.2 0a:00.0"
-    echo
-    echo "See the comments in the script for usage and how to find these values."
-    exit 2
-fi
-
 # We'll only enable the last 2 bits by using a mask
 # of :3 to setpci, this will ensure we keep the existing
 # values on the byte.
@@ -111,7 +103,15 @@ fi
 # 1    0b01    L0s only
 # 2    0b10    L1 only
 # 3    0b11    L1 and L0s
-ASPM_SETTING=3
+ASPM_SETTING="${3:-}"
+
+if [[ -z "$ROOT_COMPLEX" || -z "$ENDPOINT" || -z "$ASPM_SETTING" ]]; then
+    echo "Usage: $(basename "$0") <root_complex BDF> <endpoint BDF> <ASPM setting>"
+    echo "Example: $(basename "$0") 00:1d.2 0a:00.0"
+    echo
+    echo "See the comments in the script for usage and how to find these values."
+    exit 2
+fi
 
 function aspm_setting_to_string()
 {
