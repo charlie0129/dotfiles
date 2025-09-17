@@ -125,8 +125,7 @@ Usage:
                       ^------- Find "+-" in the result. So this is the root complex.
 
         In this case the root complex is 00:1d.2. If your endpoint is behind a 
-        PCIe switch, you may have to enable ASPM on the upstream port as well.
-        I am not sure if this is required, but it does not hurt to do so.
+        PCIe switch, you should choose the nearest root complex.
 
     4. So in this case you would run:
 
