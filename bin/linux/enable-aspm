@@ -1,0 +1,326 @@
+#!/bin/bash
+# Copyright (c) 2010 Luis R. Rodriguez <mcgrof@gmail.com>
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# 2025-09-17: added help message by Charlie Chiang
+
+
+# ASPM Tuning script
+#
+# Ever felt that your laptop is draining battery in linux faster than windows??? 
+# This could be because of ASPM disabled. Its a topic which is very important 
+# for linux beginners often not told. Especially if you are running a hardware 
+# only made to run windows. This could be the reason behind poor laptop 
+# battery saving in linux.
+#
+# run 'dmesg | grep fail' as root to see if there is any error regarding ASPM
+#
+# ASPM is a PCI-E enhancement. It allows for a device to go completely into 
+# electrically idle state, meaning it will not send or receive electrical 
+# signals for a while. To achieve this the PCI-E specification has come up with 
+# instructions a PCI-E endpoint (device) should follow for signaling to a root 
+# complex (the bus) that it is going idle, or waking up. Communication at the 
+# PCI-E bus can be tricky to align with an endpoint and because of this there 
+# are patterns a PCI-E device will use to train the link to come out of 
+# electrical idle states. There are several states a device will enter when 
+# using ASPM, namely L1, L0s.
+#
+# PCIE cards should always support ASPM, what the ASPM requirements says today 
+# is that L1 is mandatory and L0s is optional unless the formfactor 
+# specifications explicitly requies it. Not sure which form factors explicitly 
+# require L0s (anyone?). Additionally software must not enable L0s in either 
+# direction on a given Link unless components on both sides of the Link each support L0s.
+
+# The way it typically works internally on endpoints (devices) is that there 
+# are idle timers (counters) in the chipset. There is a set point at which the 
+# PCIe link is idle enough to enter L0s, and a second point at which we're idle 
+# enough to enter L1. A device could potentially 'support' L0s but internally 
+# the timers could be set such that L0s and L1 happen at the same time or L0s 
+# happens after L1, so the link will essentially never enter L0s. ASPM 
+# compliance may vary by device, ASPM specification has varied as new releases have been made.
+
+# Its normally not a thing an OS plays with but should be handled by BIOS. 
+# The problem is that motherboard vendors mostly only design for windows. 
+# So in case that your motherboard does not have any options, you can at least
+# have linux kernel overpower the BIOS. A warning though, only do this if you 
+# are absolutely sure that your device does support ASPM.
+#
+# First, add pcie_aspm=force to your kernel command line and reboot.
+#
+# Next, Check your current ASPM status using:
+#    lspci -vv | awk '/ASPM/{print $0}' RS= | grep --color -P '(^[a-z0-9:.]+|ASPM )'
+# Example output:
+#    09:00.0 Non-Volatile memory controller: Yangtze Memory Technologies Co.,Ltd ZHITAI TiPlus7100 (rev 01) (prog-if 02 [NVM Express])
+#        LnkCap: Port #0, Speed 16GT/s, Width x4, ASPM L1, Exit Latency L1 <64us
+#        LnkCtl: ASPM L1 Enabled; RCB 64 bytes, Disabled- CommClk+
+#                   ^--- this shows ASPM is enabled
+#    0a:00.0 Non-Volatile memory controller: Yangtze Memory Technologies Co.,Ltd ZHITAI TiPlus7100 (rev 01) (prog-if 02 [NVM Express])
+#       ^-------- this is your endpoint
+#        LnkCap: Port #0, Speed 16GT/s, Width x4, ASPM L1, Exit Latency L1 <64us
+#        LnkCtl: ASPM Disabled; RCB 64 bytes, Disabled- CommClk+
+#                   ^--- this shows ASPM is disabled, so you want to enable it
+#
+# Remember the endpoint address (in this case 0a:00.0).
+#
+# Now, you will need to find the root complex for your endpoint.
+# Run:
+#     lspci -t
+# Example output:
+#     -[0000:00]-+-00.0
+#                +-1d.0-[04-09]----00.0-[05-09]--+-00.0-[06]----00.0
+#                |                               +-02.0-[07]----00.0
+#                +-1d.2-[0a]----00.0      <------ 0a:00.0 is here
+#                  ^------- Find `+-` in the result. So this is the root complex.
+# 
+# In this case the root complex is 00:1d.2.
+#
+# For more details refer to:
+#
+# https://www.reddit.com/r/debian/comments/8c6ytj/active_state_power_management_aspm/
+# http://wireless.kernel.org/en/users/Documentation/ASPM
+
+ROOT_COMPLEX="${1:-}"
+ENDPOINT="${2:-}"
+
+if [[ -z "$ROOT_COMPLEX" || -z "$ENDPOINT" ]]; then
+    echo "Usage: $(basename "$0") <root_complex BDF> <endpoint BDF>"
+    echo "Example: $(basename "$0") 00:1d.2 0a:00.0"
+    echo
+    echo "See the comments in the script for usage and how to find these values."
+    exit 2
+fi
+
+# We'll only enable the last 2 bits by using a mask
+# of :3 to setpci, this will ensure we keep the existing
+# values on the byte.
+#
+# Hex  Binary  Meaning
+# -------------------------
+# 0    0b00    L0 only
+# 1    0b01    L0s only
+# 2    0b10    L1 only
+# 3    0b11    L1 and L0s
+ASPM_SETTING=3
+
+function aspm_setting_to_string()
+{
+	case $1 in
+	0)
+		echo -e "\t${BLUE}L0 only${NORMAL}, ${RED}ASPM disabled${NORMAL}"
+		;;
+	1)
+		;;
+	2)
+		echo -e "\t${GREEN}L1 only${NORMAL}"
+		;;
+	3)
+		echo -e "\t${GREEN}L1 and L0s${NORMAL}"
+		;;
+	*)
+		echo -e "\t${RED}Invalid${NORMAL}"
+		;;
+	esac
+}
+
+if ! command -v lspci >/dev/null 2>&1; then
+	echo "lspci is not installed. Please install pciutils package first."
+	exit 1
+fi
+
+if ! command -v setpci >/dev/null 2>&1; then
+	echo "setpci is not installed. Please install pciutils package first."
+	exit 1
+fi
+
+###################################################################
+# Do not edit below here unless you are sending me a patch
+###################################################################
+#
+# TODO: patches are welcomed to me until we submit to to
+#       PCI Utilities upstream.
+#
+# This can be improved by in this order:
+#
+#	* Accept arguments for endpoint and root complex address, and
+#	  desired ASPM settings
+#	* Look for your ASPM capabilities by quering your
+#	  LnkCap register first. Use these values to let you
+#	  select whether you want to enable only L1 or L1 & L0s
+#	* Searching for your root complex for you
+#	* Search for your PCI device by using the driver
+#	* Disable your driver and ask to reboot ?
+#	* Rewrite in C
+#	* Write ncurses interface [ wishlist ]
+#	* Write GTK/QT interface [ wishlist ]
+#	* Submit upstream as aspm.c to the PCI Utilities, which are
+#	  maintained by Martin Mares <mj@ucw.cz>
+
+# Pretty colors
+GREEN="\033[01;32m"
+YELLOW="\033[01;33m"
+NORMAL="\033[00m"
+BLUE="\033[34m"
+RED="\033[31m"
+PURPLE="\033[35m"
+CYAN="\033[36m"
+UNDERLINE="\033[02m"
+
+# we can surely read the spec to get a better value
+MAX_SEARCH=20
+SEARCH_COUNT=1
+ASPM_BYTE_ADDRESS="INVALID"
+
+ROOT_PRESENT=$(lspci | grep -c "$ROOT_COMPLEX")
+ENDPOINT_PRESENT=$(lspci | grep -c "$ENDPOINT")
+
+if [[ $(id -u) != 0 ]]; then
+	echo "This needs to be run as root"
+	exit 1
+fi
+
+if [[ $ROOT_PRESENT -eq 0 ]]; then
+	echo "Root complex $ROOT_COMPLEX is not present"
+	exit
+fi
+
+if [[ $ENDPOINT_PRESENT -eq 0 ]]; then
+	echo "Endpoint $ENDPOINT is not present"
+	exit
+fi
+
+# XXX: lspci -s some_device_not_existing does not return positive
+# if the device does not exist, fix this upstream
+function device_present()
+{
+
+	PRESENT=$(lspci | grep -c "$1")
+	COMPLAINT="${RED}not present${NORMAL}"
+
+	if [[ $PRESENT -eq 0 ]]; then
+		if [[ $2 != "present" ]]; then
+			COMPLAINT="${RED}disappeared${NORMAL}"
+		fi
+
+		echo -e "Device ${BLUE}${1}${NORMAL} $COMPLAINT" 
+		return 1
+	fi
+	return 0
+}
+
+function find_aspm_byte_address()
+{
+	device_present $ENDPOINT present
+	if [[ $? -ne 0 ]]; then
+		exit
+	fi
+
+	SEARCH=$(setpci -s $1 34.b)
+	# We know on the first search $SEARCH will not be
+	# 10 but this simplifies the implementation.
+	while [[ $SEARCH != 10 && $SEARCH_COUNT -le $MAX_SEARCH ]]; do
+		END_SEARCH=$(setpci -s $1 ${SEARCH}.b)
+
+		if [[ $END_SEARCH = 10 ]]; then
+			# Link Control register is at offset 0x10 within PCIe capability
+			ASPM_BYTE_ADDRESS=$(printf "%02X" $(( 16#$SEARCH + 0x10 )))
+			break
+		fi
+
+		# Move to "Next Capability Pointer" (current offset + 1)
+		NEXT_PTR_OFFSET=$(printf "%02X" $(( 16#$SEARCH + 1 )))
+		SEARCH=$(setpci -s $1 ${NEXT_PTR_OFFSET}.b)
+
+		let SEARCH_COUNT=$SEARCH_COUNT+1
+	done
+
+	if [[ $SEARCH_COUNT -ge $MAX_SEARCH ]]; then
+		echo -e "Long loop while looking for ASPM word for $1"
+		return 1
+	fi
+	return 0
+}
+
+function enable_aspm_byte()
+{
+	device_present $1 present
+	if [[ $? -ne 0 ]]; then
+		exit
+	fi
+
+	find_aspm_byte_address $1
+	if [[ $? -ne 0 ]]; then
+		return 1
+	fi
+
+	ASPM_BYTE_HEX=$(setpci -s $1 ${ASPM_BYTE_ADDRESS}.b)
+	ASPM_BYTE_HEX=$(printf "%X" 0x${ASPM_BYTE_HEX})
+	# setpci doesn't support a mask on the query yet, only on the set,
+	# so to verify a setting on a mask we have no other optoin but
+	# to do do this stuff ourselves.
+	DESIRED_ASPM_BYTE_HEX=$(printf "%X" $(( (0x${ASPM_BYTE_HEX} & ~0x7) |0x${ASPM_SETTING})))
+
+	if [[ $ASPM_BYTE_ADDRESS = "INVALID" ]]; then
+		echo -e "No ASPM byte could be found for $(lspci -s $1)"
+		return
+	fi
+
+	echo -e "$(lspci -s $1)"
+	echo -en "\t${YELLOW}0x${ASPM_BYTE_ADDRESS}${NORMAL} : ${CYAN}0x${ASPM_BYTE_HEX}${GREEN} --> ${BLUE}0x${DESIRED_ASPM_BYTE_HEX}${NORMAL} ... "
+
+	device_present $1 present
+	if [[ $? -ne 0 ]]; then
+		exit
+	fi
+
+	# Avoid setting if already set
+	if [[ "$ASPM_BYTE_HEX" = "$DESIRED_ASPM_BYTE_HEX" ]]; then
+		echo -e "[${GREEN}SUCCESS${NORMAL}] (${GREEN}already set${NORMAL})"
+		aspm_setting_to_string $ASPM_SETTING
+		return 0
+	fi
+
+	# This only writes the last 3 bits
+	setpci -s $1 ${ASPM_BYTE_ADDRESS}.b=${ASPM_SETTING}:3
+
+	sleep 3
+
+	ACTUAL_ASPM_BYTE_HEX=$(setpci -s $1 ${ASPM_BYTE_ADDRESS}.b)
+	ACTUAL_ASPM_BYTE_HEX=$(printf "%X" 0x${ACTUAL_ASPM_BYTE_HEX})
+
+	# Do not retry this if it failed, if it failed to set.
+	# Likey if it failed its a good reason and you should look
+	# into that.
+	if [[ "$ACTUAL_ASPM_BYTE_HEX" != "$DESIRED_ASPM_BYTE_HEX" ]]; then
+		echo -e "\t[${RED}FAIL${NORMAL}] (0x${ACTUAL_ASPM_BYTE_HEX})"
+		return 1
+	fi
+
+	echo -e "\t[${GREEN}SUCCESS${NORMAL}]"
+	aspm_setting_to_string $ASPM_SETTING
+
+	return 0
+}
+
+device_present $ENDPOINT not_sure
+if [[ $? -ne 0 ]]; then
+	exit
+fi
+
+echo -e "${CYAN}Root complex${NORMAL}:"
+enable_aspm_byte $ROOT_COMPLEX
+echo
+
+echo -e "${CYAN}Endpoint${NORMAL}:"
+enable_aspm_byte $ENDPOINT
+echo

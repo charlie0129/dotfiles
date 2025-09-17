@@ -31,21 +31,39 @@ info "Modified defaults has been read."
 
 info "Now comparing the defaults before and after."
 
+echo
+echo -e "$yellow===============================================================================$reset"
 echo -e "$yellow============ DIFF current_defaults.txt modified_defaults.txt BEGIN ============$reset"
+echo -e "$yellow============-------------------------------------------------------============$reset"
 diff --color=always "$tmpdir/current_defaults.txt" "$tmpdir/modified_defaults.txt"
+echo -e "$yellow============-------------------------------------------------------============$reset"
 echo -e "$yellow============ DIFF current_defaults.txt modified_defaults.txt  END  ============$reset"
+echo -e "$yellow===============================================================================$reset"
+echo
 
 info "Now comparing the host defaults before and after."
 
+echo
+echo -e "$blue===============================================================================$reset"
 echo -e "$blue======= DIFF current_host_defaults.txt modified_host_defaults.txt BEGIN =======$reset"
+echo -e "$blue=======-----------------------------------------------------------------=======$reset"
 diff --color=always "$tmpdir/current_host_defaults.txt" "$tmpdir/modified_host_defaults.txt"
+echo -e "$blue=======-----------------------------------------------------------------=======$reset"
 echo -e "$blue======= DIFF current_host_defaults.txt modified_host_defaults.txt  END  =======$reset"
+echo -e "$blue===============================================================================$reset"
+echo
 
 info "Now comparing pmset before and after."
 
+echo
+echo -e "$cyan===============================================================================$reset"
 echo -e "$cyan=============== DIFF current_pmset.txt modified_pmset.txt BEGIN ===============$reset"
+echo -e "$cyan===============-------------------------------------------------===============$reset"
 diff --color=always "$tmpdir/current_pmset.txt" "$tmpdir/modified_pmset.txt"
+echo -e "$cyan===============-------------------------------------------------===============$reset"
 echo -e "$cyan=============== DIFF current_pmset.txt modified_pmset.txt  END  ===============$reset"
+echo -e "$cyan===============================================================================$reset"
+echo
 
 info "Finder has been opened to the temporary files directory. Inspect then if you want."
 open "$tmpdir"

@@ -116,7 +116,9 @@ alias diff='diff --color=auto'
 alias ip='ip --color=auto'
 
 # -- tweaks
-HISTFILE="$ZDOTDIR/.zsh_history"
+if [ -z "$HISTFILE" ]; then
+    export HISTFILE="$ZDOTDIR/.zsh_history"
+fi
 HISTSIZE=100000 # in memory
 SAVEHIST=100000 # persistent
 bindkey -e # emacs keymap
