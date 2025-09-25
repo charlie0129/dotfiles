@@ -46,7 +46,7 @@ fi
 cd "$DOTFILES_ROOT" && link_files && cd "$DOTFILES_ROOT"
 
 # Restore custom.sh's
-for d in env func; do
+for d in env func alias; do
     cp $d/.custom.sh $d/custom.sh
 done
 
