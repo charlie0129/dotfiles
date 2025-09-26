@@ -45,9 +45,15 @@ fi
 # Link files
 cd "$DOTFILES_ROOT" && link_files && cd "$DOTFILES_ROOT"
 
-# Restore custom.sh's
+# Restore custom.sh's, but do not overwrite existing unless forced
 for d in env func alias; do
-    cp $d/.custom.sh $d/custom.sh
+    src="$d/.custom.sh"
+    dst="$d/custom.sh"
+    if [ -f "$dst" ] && [ -z "$FORCE" ]; then
+        echo -e "${COLOR_YELLOW}Skipping existing $dst (use -f to overwrite)${COLOR_RESET}"
+    else
+        cp "$src" "$dst"
+    fi
 done
 
 # Add +x permissions to all executables
