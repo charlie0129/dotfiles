@@ -47,7 +47,6 @@
 hyper - b: open -a "Vivaldi";
 hyper - e: open -a "CotEditor";
 hyper - s: open -a "Safari";
-hyper - l: open -a "Lens";
 hyper - w: open -a "WeChat";
 hyper - q: open -a "QQ";
 hyper - f: open -a "Lark";
