@@ -8,6 +8,7 @@ source bin/util/link_files.sh
 export DOTFILES_ROOT="${PWD}"
 
 FORCE=""
+OVERWRITE_CUSTOM=""
 
 # Colors
 COLOR_RED="\033[31m"
@@ -23,6 +24,10 @@ while [[ $# -gt 0 ]]; do
     case $key in
     -f | --force)
         FORCE=y
+        shift
+        ;;
+    --overwrite-custom)
+        OVERWRITE_CUSTOM=y
         shift
         ;;
     *)
@@ -49,8 +54,8 @@ cd "$DOTFILES_ROOT" && link_files && cd "$DOTFILES_ROOT"
 for d in env func alias; do
     src="$d/.custom.sh"
     dst="$d/custom.sh"
-    if [ -f "$dst" ] && [ -z "$FORCE" ]; then
-        echo -e "${COLOR_YELLOW}Skipping existing $dst (use -f to overwrite)${COLOR_RESET}"
+    if [ -f "$dst" ] && [ -z "$OVERWRITE_CUSTOM" ]; then
+        echo -e "${COLOR_YELLOW}Skipping existing $dst (use --overwrite-custom to overwrite)${COLOR_RESET}"
     else
         cp "$src" "$dst"
     fi
