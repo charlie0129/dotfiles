@@ -38,6 +38,10 @@ if type docker-compose > /dev/null 2>&1; then
 else
     alias comp="docker compose"
 fi
+# Has podman but no docker, use podman compose
+if ! type docker > /dev/null 2>&1 && type podman > /dev/null 2>&1; then
+    alias comp="podman compose"
+fi
 
 # Common mistakes
 alias code.="code ."
