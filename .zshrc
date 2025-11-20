@@ -189,3 +189,6 @@ for type in "${types[@]}"; do
 done
 
 ############################ END Completions ############################
+
+# Enable this to measures zsh startup performance problems
+# zprof
