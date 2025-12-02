@@ -197,9 +197,7 @@ __print_color_faint() {
 __datestr() {
     if [[ -n $__output_has_tty ]]; then
         # Use short format to make it more human-readable.
-        # We cannot use %3N for milliseconds, so we use %N and then slice it.
-        local time=$(date +"%H:%M:%S.%N")
-        echo -n "${time:0:12}"
+        date +"%H:%M:%S"
         return
     fi
     # RFC3339/ISO8601 format. To be able to run on macOS (BSD),
