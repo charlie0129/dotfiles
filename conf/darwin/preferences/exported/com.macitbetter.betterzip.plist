@@ -206,6 +206,28 @@
 			<key>tag</key>
 			<integer>12</integer>
 		</dict>
+		<dict>
+			<key>compression</key>
+			<integer>2</integer>
+			<key>folder</key>
+			<string>2</string>
+			<key>format</key>
+			<integer>9</integer>
+			<key>isService</key>
+			<false/>
+			<key>isToolbar</key>
+			<false/>
+			<key>mode</key>
+			<true/>
+			<key>moveArchiveTo</key>
+			<string>1</string>
+			<key>moveOriginalsTo</key>
+			<string>1</string>
+			<key>name</key>
+			<string>.tzst Ask</string>
+			<key>tag</key>
+			<integer>13</integer>
+		</dict>
 	</array>
 	<key>MIBShouldTerminateAfterLastWindowClosed2</key>
 	<true/>
@@ -218,7 +240,7 @@
 	<key>TableColumnSorter5.0</key>
 	<real>1737446892.222131</real>
 	<key>nextTag</key>
-	<integer>13</integer>
+	<integer>14</integer>
 	<key>prefsVersion</key>
 	<integer>451</integer>
 </dict>
