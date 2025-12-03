@@ -27,6 +27,9 @@ defaults write NSGlobalDomain NSCloseAlwaysConfirmsChanges -bool true
 # Disable wallpaper tinting in windows
 defaults write NSGlobalDomain AppleReduceDesktopTinting -bool true
 
+# Do not switch to a Space with open windows for the application when switching to an application.
+defaults write NSGlobalDomain AppleSpacesSwitchOnActivate -bool false
+
 # Show notification previews only when unlocked
 defaults write com.apple.ncprefs content_visibility -int 2
 
