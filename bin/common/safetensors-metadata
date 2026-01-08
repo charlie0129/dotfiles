@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+
+import json
+import struct
+import argparse
+import sys
+import math
+from typing import Dict, List, Tuple, Any
+
+
+def format_number(num: int) -> str:
+    """Converts a number to a human-readable string (K, M, B, T)."""
+    if num == 0:
+        return "0  "
+
+    units = [" ", "K", "M", "B", "T"]
+    # Base 1024 for consistency with memory sizes
+    unit_index = min(int(math.log(abs(num), 1024)), len(units) - 1)
+    scaled_num = num / (1024**unit_index)
+
+    # Skip .0 if the number is an integer, otherwise keep 1 decimal place
+    if scaled_num.is_integer():
+        return f"{int(scaled_num):,} {units[unit_index]}"
+    else:
+        return f"{scaled_num:,.1f} {units[unit_index]}"
+
+
+def dump_safetensors_table(file_path: str) -> None:
+    try:
+        with open(file_path, "rb") as f:
+            # Read header length (first 8 bytes)
+            header_len_bytes = f.read(8)
+            if len(header_len_bytes) != 8:
+                print("Error: Invalid file size.", file=sys.stderr)
+                sys.exit(1)
+
+            header_len: int = struct.unpack("<Q", header_len_bytes)[0]
+
+            # Read JSON header
+            header_bytes = f.read(header_len)
+            header: Dict[str, Any] = json.loads(header_bytes.decode("utf-8"))
+
+            # Prepare data for table
+            tensors: List[Tuple[str, str, str, int]] = []
+            max_name_len: int = 20  # Default minimum width
+            max_shape_len: int = 20  # Default minimum width
+            total_params: int = 0
+
+            # Header keys are tensor names, except for __metadata__
+            for name, info in header.items():
+                if name == "__metadata__":
+                    continue
+
+                # Extract info
+                shape: List[int] = info["shape"]
+                dtype: str = info["dtype"]
+
+                # Calculations
+                # Parameters = product of dimensions
+                params: int = math.prod(shape)
+                if len(shape) == 0:
+                    params = 0
+
+                total_params += params
+
+                # Format shape as string "[x, y, z]"
+                shape_str: str = str(shape)
+
+                # Track max width for column alignment
+                if len(name) > max_name_len:
+                    max_name_len = len(name)
+                if len(shape_str) > max_shape_len:
+                    max_shape_len = len(shape_str)
+
+                tensors.append((name, shape_str, dtype, params))
+
+            # Sort tensors by offset to ensure logical order (usually they are sorted, but safety first)
+            # Note: We lost offset info in the tuple above, assuming JSON key order is insertion order (Py3.7+).
+            # If strict file order is needed, we should sort by offsets before printing,
+            # but dictionary order usually matches file order in safetensors.
+
+            # Print Table
+            # Define column widths
+            w_name: int = max_name_len + 2
+            w_shape: int = max_shape_len + 2
+            w_dtype: int = 8
+            w_params: int = 12
+
+            print(
+                f"{'Name':<{w_name}} {'Shape':<{w_shape}} {'Dtype':<{w_dtype}} {'Params':>{w_params}}"
+            )
+            print("-" * (w_name + w_shape + w_dtype + w_params + 5))
+
+            for name, shape_str, dtype, params in tensors:
+                p_str: str = format_number(params)
+                print(
+                    f"{name:<{w_name}} {shape_str:<{w_shape}} {dtype:<{w_dtype}} {p_str:>{w_params}}"
+                )
+
+            print("-" * (w_name + w_shape + w_dtype + w_params + 5))
+            print(
+                f"{'TOTAL':<{w_name}} {'':<{w_shape}} {'':<{w_dtype}} {format_number(total_params):>{w_params}}"
+            )
+
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Dump a human-readable table of .safetensors metadata."
+    )
+    parser.add_argument("file", help="Path to the .safetensors file")
+    args = parser.parse_args()
+    dump_safetensors_table(args.file)
