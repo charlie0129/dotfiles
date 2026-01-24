@@ -244,6 +244,8 @@
 		<string>mono</string>
 		<key>Menubar.Theme.Light</key>
 		<string>mono</string>
+		<key>MenubarCurrentApperance</key>
+		<string>Dark</string>
 		<key>Migration.CombinedPowerItems</key>
 		<true/>
 		<key>Migration.Profiles</key>

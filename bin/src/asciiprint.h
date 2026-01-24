@@ -67,10 +67,22 @@ void ascii_print_quotes(const char *str) {
   fputs(NCOLOR, stdout);
 }
 
+int count_colons(const char *str) {
+  int count = 0;
+  const char *p = str;
+  while (*p) {
+    if (*p == ':') {
+      count++;
+    }
+    p++;
+  }
+  return count;
+}
+
 void env_print(const char *str) {
   unsigned char *p = (unsigned char *)str;
 
-  int is_path_like = strstr(str, "PATH") != NULL;
+  int is_path_like = count_colons(str) > 4;
 
   fputs(YELLOW, stdout);
   putchar('"');
