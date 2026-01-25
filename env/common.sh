@@ -68,3 +68,6 @@ export GOPROXY="https://goproxy.cn,direct"
 # To change it without being tracked by git,
 # export the same variable in env/custom.sh to override.
 export PROXY_ADDR="http://127.0.0.1:30000"
+
+# GPG TTY setup
+export GPG_TTY=$(tty)
