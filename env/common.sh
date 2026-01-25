@@ -2,7 +2,10 @@
 
 # This list is inserted before PATH
 PATH_BEFORE=(
-    # User-specific bin
+    # User-specific bin. Put it in front to override system binaries if needed.
+    # Note that os-specific env like darwin.sh will also have $HOME/bin at front
+    # because they are sourced before this common.sh, to also let $HOME/bin
+    # override os-specific system binaries.
     $HOME/bin
     $HOME/.local/bin
     # bin in this repo
