@@ -2,6 +2,10 @@
 
 # This list is inserted before PATH
 PATH_BEFORE=(
+    # Duplicate of common.sh to ensure $HOME/bin and $HOME/.local/bin are first
+    # since os-specific files are sourced before common.sh
+    $HOME/bin
+    $HOME/.local/bin
     # bin in this repo
     $DOTFILES_ROOT/bin/darwin
     # Homebrew x86_64.
