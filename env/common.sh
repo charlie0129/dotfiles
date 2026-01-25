@@ -17,6 +17,8 @@ PATH_BEFORE=(
     /usr/local/go/bin
     # Manually installed Zig toolchain, if any
     /usr/local/zig
+    # FNM default version
+    $HOME/.local/share/fnm/aliases/default/bin
 )
 
 # This list is appended after PATH

@@ -21,6 +21,9 @@ echo "Applying settings..."
 #sudo scutil --set LocalHostName "0x6D746873"
 #sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "0x6D746873"
 
+# Disable library validation (allows running unsigned code)
+sudo defaults write /Library/Preferences/com.apple.security.libraryvalidation.plist DisableLibraryValidation -bool true
+
 # Ask to keep changes when closing documents (do not sliently save, which is annoying).
 defaults write NSGlobalDomain NSCloseAlwaysConfirmsChanges -bool true
 
