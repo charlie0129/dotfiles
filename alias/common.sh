@@ -8,19 +8,19 @@ alias -g ......='../../../../..'
 
 # ls
 if type lsd >/dev/null 2>&1; then
-    alias lsd='lsd --icon never --date "+%Y-%m-%d %H:%M:%S"'
-    alias ls='lsd --group-directories-first'
-else
-    if [[ "$OS" == "darwin" ]]; then
-        alias ls='ls -G -D "%Y-%m-%d %H:%M:%S"'
-    elif [[ "$OS" == "linux" ]]; then
-        alias ls='ls --color=auto --time-style="+%Y-%m-%d %H:%M:%S"'
-    fi
+    alias lsd='lsd --icon never --date "+%Y-%m-%d %H:%M:%S" --group-directories-first'
 fi
-alias l='ls -lahF'
-alias ll='ls -lhF'
-alias la='ls -lAhF'
-alias lsa='ls -lahF'
+if ls --version 2>&1 | grep -q GNU; then
+    # GNU ls
+    alias ls='ls --color=auto --time-style="+%Y-%m-%d %H:%M:%S"'
+else
+    # Assume BSD ls (macOS)
+    alias ls='ls -G -D "%Y-%m-%d %H:%M:%S"'
+fi
+alias l='lsd -lahF'
+alias ll='lsd -lhF'
+alias la='lsd -lAhF'
+alias lsa='lsd -lahF'
 
 # Git
 alias gcl1='git clone --recurse-submodules --shallow-submodules --depth=1'
