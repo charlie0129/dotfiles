@@ -7,9 +7,14 @@ from typing import List
 
 
 def is_num_or_char(b):
-    return ord('a') <= int(b) <= ord('z') \
+    """
+    Check if the given byte represents a numeric or alphabetic character.
+    Excluding Oo0l1I to avoid confusion.
+    """
+    return (ord('a') <= int(b) <= ord('z') \
         or ord('A') <= int(b) <= ord('Z') \
-        or ord('0') <= int(b) <= ord('9')
+        or ord('0') <= int(b) <= ord('9')) and \
+        int(b) not in [ord('O'), ord('o'), ord('0'), ord('l'), ord('1'), ord('I')]
 
 
 def is_printable_char(b):
