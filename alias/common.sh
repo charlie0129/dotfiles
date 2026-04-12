@@ -101,6 +101,9 @@ alias ipr="ip r"
 alias ip6a="ip6 a"
 alias ip6r="ip6 r"
 
+# bat uses less as pager by default. I don't want it.
+alias bat="bat --paging=never"
+
 # Disable / enable terminal line wrap
 alias setwrap="tput smam"
 alias setnowrap="tput rmam"
