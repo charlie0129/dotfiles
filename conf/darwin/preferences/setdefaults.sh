@@ -602,6 +602,9 @@ defaults write com.apple.WindowManager EnableTiledWindowMargins -bool false
 # Do not fullscreen by dragging to the top of the screen
 defaults write com.apple.WindowManager EnableTopTilingByEdgeDrag -bool false
 
+# Do not tile by dragging to the left or right of the screen
+defaults write com.apple.WindowManager EnableTilingByEdgeDrag -bool false
+
 # Do not show desktop icons
 defaults write com.apple.WindowManager HideDesktop -bool true
 defaults write com.apple.WindowManager StandardHideDesktopIcons -bool true
