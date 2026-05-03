@@ -15,9 +15,21 @@ if [[ "${1:-}" == "-h" ]]; then
     exit 0
 fi
 
+# --- Show current public IP when no argument given ---
+if [[ $# -eq 0 ]]; then
+    ipv4=$(curl -fsSL --max-time 5 "http://v4.ip.zxinc.org/getip" 2>/dev/null || true)
+    ipv6=$(curl -fsSL --max-time 5 "http://v6.ip.zxinc.org/getip" 2>/dev/null || true)
+
+    printf "Public IPv4: "
+    if [[ -n "$ipv4" ]]; then printf "\033[34m%s\033[0m\n" "$ipv4"; else printf "\033[90munavailable\033[0m\n"; fi
+
+    printf "Public IPv6: "
+    if [[ -n "$ipv6" ]]; then printf "\033[34m%s\033[0m\n" "$ipv6"; else printf "\033[90munavailable\033[0m\n"; fi
+fi
+
+# --- Query IP geo-location ---
 api_url="http://ip.zxinc.org/api.php"
 
-# Build curl arguments
 curl_args=(-fsSL -X GET -G "$api_url" --data-urlencode "type=json")
 if [[ $# -gt 0 ]]; then
     curl_args+=(--data-urlencode "ip=$1")
@@ -29,10 +41,8 @@ if [[ -z "$ret" || "$ret" == "null" ]]; then
     exit 1
 fi
 
-myip=$(jq -r '.myip' <<< "$ret")
 query=$(jq -r '.ip.query' <<< "$ret")
-location=$(jq -r '.location' <<< "$ret" | sed 's/\t/\n          /g')
+location=$(jq -r '.location' <<< "$ret" | sed 's/\t/\n             /g')
 
-printf "My IP:    \033[34m%s\033[0m\n" "$myip"
-printf "Query IP: \033[32m%s\033[0m\n" "$query"
-printf "Result:   \033[32m%s\033[0m\n" "$location"
+printf "Query IP:    \033[32m%s\033[0m\n" "$query"
+printf "Location:    \033[32m%s\033[0m\n" "$location"
