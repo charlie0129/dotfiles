@@ -1,31 +1,38 @@
 #!/bin/bash
 
-set -o errexit
+set -euo pipefail
 
-if [[ $1 = "-h" ]]; then
-    echo "ipquery: query current ip"
-    echo "ipquery <ip>: query the given ip"
+for cmd in curl jq; do
+    if ! command -v "$cmd" &>/dev/null; then
+        echo "error: $cmd is required but not installed" >&2
+        exit 1
+    fi
+done
+
+if [[ "${1:-}" == "-h" ]]; then
+    echo "usage: ipquery        query current ip"
+    echo "       ipquery <ip>   query the given ip"
     exit 0
 fi
 
 api_url="http://ip.zxinc.org/api.php"
 
-# if no parameter, query current ip
-if [ $# -ne 1 ]; then
-    ret=$(curl -fsSL -X GET -G "$api_url" \
-        --data-urlencode "type=json" |
-        jq -r '.data')
-else # query the given ip
-    ret=$(curl -fsSL -X GET -G "$api_url" \
-        --data-urlencode "type=json" \
-        --data-urlencode "ip=$1" |
-        jq -r '.data')
+# Build curl arguments
+curl_args=(-fsSL -X GET -G "$api_url" --data-urlencode "type=json")
+if [[ $# -gt 0 ]]; then
+    curl_args+=(--data-urlencode "ip=$1")
 fi
 
-myip=$(echo "$ret" | jq -r '.myip')
-query=$(echo "$ret" | jq -r '.ip | .query')
-location=$(echo "$ret" | jq -r '.location' | sed 's/\t/\n          /g')
+ret=$(curl "${curl_args[@]}" | jq -r '.data')
+if [[ -z "$ret" || "$ret" == "null" ]]; then
+    echo "error: no data returned from API" >&2
+    exit 1
+fi
 
-echo -e "My IP:    \033[34m$myip\033[0m"
-echo -e "Query IP: \033[32m$query\033[0m"
-echo -e "Result:   \033[32m$location\033[0m"
+myip=$(jq -r '.myip' <<< "$ret")
+query=$(jq -r '.ip.query' <<< "$ret")
+location=$(jq -r '.location' <<< "$ret" | sed 's/\t/\n          /g')
+
+printf "My IP:    \033[34m%s\033[0m\n" "$myip"
+printf "Query IP: \033[32m%s\033[0m\n" "$query"
+printf "Result:   \033[32m%s\033[0m\n" "$location"
