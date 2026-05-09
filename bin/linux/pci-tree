@@ -54,6 +54,24 @@ FALLBACK_NAME_COLORS = [
     "#A691E2",
     "#D684A4",
 ]
+LINK_WIDTH_COLORS = {
+    0: "#7A7A7A",
+    1: "#53A7FD",
+    2: "#3F88FF",
+    4: "#5B6CFF",
+    8: "#7A56F5",
+    12: "#9B4FE0",
+    16: "#C24DC5",
+    32: "#EA5FA8",
+}
+LINK_SPEED_COLORS = [
+    (64.0, "#FF5A5F"),
+    (32.0, "#FF8A3D"),
+    (16.0, "#FFBF3C"),
+    (8.0, "#B8D74A"),
+    (5.0, "#55C271"),
+    (2.5, "#48B6E8"),
+]
 
 
 class Palette(object):
@@ -119,22 +137,23 @@ class Palette(object):
     def warning(self, text):
         return self.wrap(text, self.BOLD, self.BRIGHT_RED)
 
-    def link_by_speed(self, text, speed):
+    def link_width(self, text, width):
+        if width is None:
+            return self.wrap(text, self.DIM)
+        if width == 0:
+            return self.warning(text)
+        codes = [self.fg_rgb(link_width_color(width))]
+        if width >= 16:
+            codes.insert(0, self.BOLD)
+        return self.wrap(text, *codes)
+
+    def link_speed(self, text, speed):
         if speed is None:
             return self.wrap(text, self.DIM)
-        if speed >= 64.0:
-            return self.wrap(text, self.BOLD, self.BRIGHT_RED)
+        codes = [self.fg_rgb(link_speed_color(speed))]
         if speed >= 32.0:
-            return self.wrap(text, self.BRIGHT_RED)
-        if speed >= 16.0:
-            return self.wrap(text, self.BRIGHT_MAGENTA)
-        if speed >= 8.0:
-            return self.wrap(text, self.BRIGHT_YELLOW)
-        if speed >= 5.0:
-            return self.wrap(text, self.BRIGHT_GREEN)
-        if speed >= 2.5:
-            return self.wrap(text, self.BRIGHT_BLUE)
-        return self.wrap(text, self.DIM)
+            codes.insert(0, self.BOLD)
+        return self.wrap(text, *codes)
 
 
 def parse_hex_color(value):
@@ -155,6 +174,19 @@ def device_name_rgb(info):
     key = "%s:%s" % (info.get("vendor_id") or "", info.get("device_id") or "")
     checksum = sum(ord(ch) for ch in key)
     return FALLBACK_NAME_COLORS[checksum % len(FALLBACK_NAME_COLORS)]
+
+
+def link_width_color(width):
+    return LINK_WIDTH_COLORS.get(width, "#8A8A8A")
+
+
+def link_speed_color(speed):
+    if speed is None:
+        return "#8A8A8A"
+    for minimum_speed, color in LINK_SPEED_COLORS:
+        if speed + 0.05 >= minimum_speed:
+            return color
+    return "#8A8A8A"
 
 
 def read_text(path):
@@ -514,8 +546,37 @@ def format_speed(speed):
     if speed is None:
         return "?"
     if abs(speed - round(speed)) < 0.05:
-        return "%.1fGT/s" % speed
+        return "%.0fGT/s" % speed
     return ("%sGT/s" % speed).rstrip("0").rstrip(".")
+
+
+def format_link_state(width, speed, palette):
+    if width == 0:
+        plain = "down"
+        if palette.enabled:
+            return plain, palette.warning(plain)
+        return plain, plain
+
+    width_text = "x%s" % (width if width is not None else "?")
+    speed_text = format_speed(speed)
+    generation = speed_generation(speed)
+
+    plain = width_text + "@" + speed_text
+    if palette.enabled:
+        colored = (
+            palette.link_width(width_text, width)
+            + palette.muted("@")
+            + palette.link_speed(speed_text, speed)
+        )
+    else:
+        colored = plain
+
+    if generation:
+        plain += "/" + generation
+        if palette.enabled:
+            colored += palette.muted("/") + palette.link_speed(generation, speed)
+
+    return plain, colored
 
 
 def format_link(info, palette):
@@ -537,27 +598,13 @@ def format_link(info, palette):
         return None
 
     link_is_down = cur_width == 0
-    if link_is_down:
-        cur_text = "down"
-    else:
-        cur_text = "x%s@%s" % (
-            cur_width if cur_width is not None else "?",
-            format_speed(cur_speed),
-        )
-        gen = speed_generation(cur_speed)
-        if gen:
-            cur_text += "/" + gen
+    cur_text, cur_colored = format_link_state(cur_width, cur_speed, palette)
 
     degraded = False
     max_text = None
+    max_colored = None
     if max_speed is not None or max_width is not None:
-        max_text = "x%s@%s" % (
-            max_width if max_width is not None else "?",
-            format_speed(max_speed),
-        )
-        max_gen = speed_generation(max_speed)
-        if max_gen:
-            max_text += "/" + max_gen
+        max_text, max_colored = format_link_state(max_width, max_speed, palette)
         if (
             cur_speed is not None
             and max_speed is not None
@@ -569,14 +616,11 @@ def format_link(info, palette):
 
     text = "link=" + cur_text
     if degraded and max_text:
-        text += "/max " + max_text
+        text += " < " + max_text
 
-    if link_is_down:
-        colored = "link=" + palette.warning(cur_text)
-    else:
-        colored = "link=" + palette.link_by_speed(cur_text, cur_speed)
+    colored = "link=" + cur_colored
     if degraded and max_text:
-        colored += palette.muted("/max ") + palette.link_by_speed(max_text, max_speed)
+        colored += palette.muted(" < ") + max_colored
         if not link_is_down:
             colored += " " + palette.warning("degraded")
     plain_suffix = " degraded" if degraded and not link_is_down else ""
