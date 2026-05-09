@@ -1,0 +1,896 @@
+#!/usr/bin/env python3
+"""
+Show PCI/PCIe topology from Linux sysfs.
+
+The script is intentionally dependency-free.  It uses /sys as the authoritative
+topology source and, when available, asks lspci for human-readable names.
+"""
+
+import argparse
+import os
+import re
+import signal
+import shutil
+import subprocess
+import sys
+
+
+BDF_RE = re.compile(r"^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7]$")
+ROOT_RE = re.compile(r"^pci([0-9a-fA-F]{4}):([0-9a-fA-F]{2})$")
+HEX_ID_RE = re.compile(r"\s+\[[0-9a-fA-F:.]+\]$")
+SPEED_RE = re.compile(r"([0-9]+(?:\.[0-9]+)?)\s*GT/s", re.IGNORECASE)
+VALID_LINK_WIDTHS = set([0, 1, 2, 4, 8, 12, 16, 32])
+DEVICE_NAME_COLORS = {
+    "00": "#969696",  # unclassified
+    "01": "#76BE7A",  # storage
+    "02": "#5AB2D6",  # network
+    "03": "#BC87DE",  # display
+    "04": "#D684A4",  # multimedia
+    "05": "#CAA55A",  # memory
+    "06": "#687A8F",  # bridge
+    "07": "#62BEB0",  # communication
+    "08": "#94A4B2",  # system peripheral
+    "09": "#A691E2",  # input
+    "0a": "#9E9E9E",  # docking
+    "0b": "#D69256",  # processor
+    "0c": "#529EE6",  # serial bus
+    "0d": "#7ECC86",  # wireless
+    "0e": "#B8B85E",  # intelligent I/O
+    "0f": "#9884D2",  # satellite
+    "10": "#D67676",  # encryption
+    "11": "#ACC65C",  # signal processing
+    "12": "#D47ED4",  # processing accelerator
+    "13": "#AAAAAA",  # non-essential instrumentation
+    "40": "#C67EBE",  # co-processor
+    "ff": "#8E8E8E",  # unassigned
+}
+FALLBACK_NAME_COLORS = [
+    "#64AEDA",
+    "#BE84DE",
+    "#76C482",
+    "#D68C6A",
+    "#62BEB0",
+    "#CAAE5C",
+    "#A691E2",
+    "#D684A4",
+]
+
+
+class Palette(object):
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    BRIGHT_RED = "\033[91m"
+    BRIGHT_GREEN = "\033[92m"
+    BRIGHT_YELLOW = "\033[93m"
+    BRIGHT_BLUE = "\033[94m"
+    BRIGHT_MAGENTA = "\033[95m"
+    BRIGHT_CYAN = "\033[96m"
+
+    def __init__(self, enabled):
+        self.enabled = enabled
+
+    def wrap(self, text, *codes):
+        if not self.enabled or text is None or text == "":
+            return text
+        return "".join(codes) + text + self.RESET
+
+    def fg_rgb(self, red, green=None, blue=None):
+        if green is None and blue is None and isinstance(red, str):
+            red, green, blue = parse_hex_color(red)
+        return "\033[38;2;%d;%d;%dm" % (red, green, blue)
+
+    def tree(self, text):
+        return self.wrap(text, self.DIM)
+
+    def root(self, text):
+        return self.wrap(text, self.BOLD, self.CYAN)
+
+    def bdf(self, text):
+        return self.wrap(text, self.BOLD, self.BRIGHT_CYAN)
+
+    def slot(self, text):
+        return self.wrap(text, self.DIM, self.fg_rgb("#9C809C"))
+
+    def ids(self, text):
+        return self.wrap(text, self.YELLOW)
+
+    def driver(self, text):
+        return self.wrap(text, self.BRIGHT_BLUE)
+
+    def meta(self, text):
+        return self.wrap(text, self.CYAN)
+
+    def muted(self, text):
+        return self.wrap(text, self.DIM)
+
+    def device_name(self, text, info):
+        if not self.enabled or text is None or text == "":
+            return text
+        rgb = device_name_rgb(info)
+        return self.wrap(text, self.fg_rgb(rgb))
+
+    def warning(self, text):
+        return self.wrap(text, self.BOLD, self.BRIGHT_RED)
+
+    def link_by_speed(self, text, speed):
+        if speed is None:
+            return self.wrap(text, self.DIM)
+        if speed >= 64.0:
+            return self.wrap(text, self.BOLD, self.BRIGHT_RED)
+        if speed >= 32.0:
+            return self.wrap(text, self.BRIGHT_RED)
+        if speed >= 16.0:
+            return self.wrap(text, self.BRIGHT_MAGENTA)
+        if speed >= 8.0:
+            return self.wrap(text, self.BRIGHT_YELLOW)
+        if speed >= 5.0:
+            return self.wrap(text, self.BRIGHT_GREEN)
+        if speed >= 2.5:
+            return self.wrap(text, self.BRIGHT_BLUE)
+        return self.wrap(text, self.DIM)
+
+
+def parse_hex_color(value):
+    value = value.strip()
+    if value.startswith("#"):
+        value = value[1:]
+    if len(value) != 6:
+        raise ValueError("expected #RRGGBB color, got %r" % value)
+    return (int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16))
+
+
+def device_name_rgb(info):
+    class_id = (info.get("class_id") or "").lower()
+    class_key = class_id[:2]
+    if class_key in DEVICE_NAME_COLORS:
+        return DEVICE_NAME_COLORS[class_key]
+
+    key = "%s:%s" % (info.get("vendor_id") or "", info.get("device_id") or "")
+    checksum = sum(ord(ch) for ch in key)
+    return FALLBACK_NAME_COLORS[checksum % len(FALLBACK_NAME_COLORS)]
+
+
+def read_text(path):
+    try:
+        with open(path, "r") as f:
+            return f.read().strip()
+    except (IOError, OSError):
+        return None
+
+
+def readlink_basename(path):
+    if not os.path.exists(path):
+        return None
+    try:
+        return os.path.basename(os.path.realpath(path))
+    except (IOError, OSError):
+        return None
+
+
+def normalize_hex(value, width=None):
+    if not value:
+        return None
+    value = value.strip().lower()
+    if value.startswith("0x"):
+        value = value[2:]
+    if width:
+        value = value.zfill(width)
+    return value
+
+
+def parse_bdf_key(bdf):
+    domain, bus, rest = bdf.split(":")
+    dev, func = rest.split(".")
+    return (int(domain, 16), int(bus, 16), int(dev, 16), int(func, 16))
+
+
+def parse_root_key(root):
+    match = ROOT_RE.match(root)
+    if not match:
+        return (999999, 999999, root)
+    return (int(match.group(1), 16), int(match.group(2), 16), root)
+
+
+def strip_lspci_id(value):
+    if not value:
+        return None
+    return HEX_ID_RE.sub("", value).strip()
+
+
+def parse_lspci_vmm(output):
+    records = {}
+    current = {}
+
+    def finish_record():
+        if not current:
+            return
+        bdf = current.get("Slot")
+        if bdf:
+            records[bdf] = dict(current)
+        current.clear()
+
+    for line in output.splitlines():
+        line = line.rstrip("\n")
+        if not line:
+            finish_record()
+            continue
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        value = value.strip()
+        if key == "Module":
+            current.setdefault("Module", [])
+            if isinstance(current["Module"], list):
+                current["Module"].append(value)
+        elif key in current:
+            old = current[key]
+            if isinstance(old, list):
+                old.append(value)
+            else:
+                current[key] = [old, value]
+        else:
+            current[key] = value
+    finish_record()
+    return records
+
+
+def load_lspci_info(timeout=8):
+    lspci = shutil.which("lspci")
+    if not lspci:
+        return {}, "lspci not found"
+
+    commands = [
+        [lspci, "-D", "-vmmnn"],
+        [lspci, "-Dmmnn"],
+    ]
+    last_error = None
+    for cmd in commands:
+        try:
+            output = subprocess.check_output(
+                cmd,
+                stderr=subprocess.DEVNULL,
+                universal_newlines=True,
+                timeout=timeout,
+            )
+            if "-vmmnn" in cmd:
+                return parse_lspci_vmm(output), None
+            return parse_lspci_mm(output), None
+        except Exception as exc:
+            last_error = str(exc)
+    return {}, "lspci failed: %s" % last_error
+
+
+def parse_lspci_mm(output):
+    records = {}
+    for line in output.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            fields = split_quoted_fields(line)
+        except ValueError:
+            continue
+        if len(fields) < 4:
+            continue
+        bdf = fields[0]
+        records[bdf] = {
+            "Slot": bdf,
+            "Class": fields[1],
+            "Vendor": fields[2],
+            "Device": fields[3],
+        }
+    return records
+
+
+def split_quoted_fields(line):
+    fields = []
+    field = []
+    in_quote = False
+    escape = False
+    for ch in line:
+        if escape:
+            field.append(ch)
+            escape = False
+        elif ch == "\\":
+            escape = True
+        elif ch == '"':
+            in_quote = not in_quote
+        elif ch.isspace() and not in_quote:
+            if field:
+                fields.append("".join(field))
+                field = []
+        else:
+            field.append(ch)
+    if in_quote:
+        raise ValueError("unterminated quote")
+    if field:
+        fields.append("".join(field))
+    return fields
+
+
+def load_slot_map(sysfs_root):
+    slots_dir = os.path.join(sysfs_root, "bus", "pci", "slots")
+    slot_map = {}
+    try:
+        slot_names = os.listdir(slots_dir)
+    except (IOError, OSError):
+        return slot_map
+
+    for slot_name in slot_names:
+        slot_dir = os.path.join(slots_dir, slot_name)
+        address = read_text(os.path.join(slot_dir, "address"))
+        if not address:
+            continue
+        address = address.strip().lower()
+        slot_map[address] = slot_name
+    return slot_map
+
+
+def discover_devices(sysfs_root, lspci_info, slot_map):
+    devices_dir = os.path.join(sysfs_root, "bus", "pci", "devices")
+    devices = {}
+    roots = {}
+
+    try:
+        entries = sorted(os.listdir(devices_dir), key=parse_bdf_key)
+    except (IOError, OSError):
+        raise RuntimeError("cannot read %s" % devices_dir)
+
+    for bdf in entries:
+        if not BDF_RE.match(bdf):
+            continue
+        path = os.path.join(devices_dir, bdf)
+        real_path = os.path.realpath(path)
+        parts = [p for p in real_path.split(os.sep) if p]
+        bdf_parts = [p for p in parts if BDF_RE.match(p)]
+        root = find_root_from_parts(parts)
+        if not root:
+            root = "pci%s:%s" % (bdf[0:4], bdf[5:7])
+        parent = bdf_parts[-2] if len(bdf_parts) >= 2 else None
+
+        info = {
+            "bdf": bdf,
+            "path": path,
+            "real_path": real_path,
+            "root": root,
+            "parent": parent,
+            "children": [],
+            "vendor_id": normalize_hex(read_text(os.path.join(path, "vendor")), 4),
+            "device_id": normalize_hex(read_text(os.path.join(path, "device")), 4),
+            "subsystem_vendor_id": normalize_hex(
+                read_text(os.path.join(path, "subsystem_vendor")), 4
+            ),
+            "subsystem_device_id": normalize_hex(
+                read_text(os.path.join(path, "subsystem_device")), 4
+            ),
+            "class_id": normalize_hex(read_text(os.path.join(path, "class")), 6),
+            "revision": normalize_hex(read_text(os.path.join(path, "revision")), 2),
+            "driver": readlink_basename(os.path.join(path, "driver")),
+            "module": read_driver_module(path),
+            "slot": find_slot(path, bdf, lspci_info.get(bdf, {}), slot_map),
+            "numa_node": read_text(os.path.join(path, "numa_node")),
+            "iommu_group": readlink_basename(os.path.join(path, "iommu_group")),
+            "power_state": read_text(os.path.join(path, "power_state")),
+            "current_link_speed": read_text(os.path.join(path, "current_link_speed")),
+            "current_link_width": read_text(os.path.join(path, "current_link_width")),
+            "max_link_speed": read_text(os.path.join(path, "max_link_speed")),
+            "max_link_width": read_text(os.path.join(path, "max_link_width")),
+            "sriov_totalvfs": read_text(os.path.join(path, "sriov_totalvfs")),
+            "sriov_numvfs": read_text(os.path.join(path, "sriov_numvfs")),
+            "is_vf": os.path.exists(os.path.join(path, "physfn")),
+            "is_pf": any(name.startswith("virtfn") for name in safe_listdir(path)),
+            "lspci": lspci_info.get(bdf, {}),
+        }
+
+        if not info["driver"]:
+            driver = info["lspci"].get("Driver")
+            if isinstance(driver, list):
+                driver = driver[0]
+            info["driver"] = driver
+        if not info["module"]:
+            module = info["lspci"].get("Module")
+            if isinstance(module, list):
+                info["module"] = ",".join(module)
+            else:
+                info["module"] = module
+
+        devices[bdf] = info
+        roots.setdefault(root, [])
+
+    for bdf in sorted(devices, key=parse_bdf_key):
+        info = devices[bdf]
+        parent = info["parent"]
+        if parent in devices:
+            devices[parent]["children"].append(bdf)
+        else:
+            roots.setdefault(info["root"], []).append(bdf)
+
+    for info in devices.values():
+        info["children"].sort(key=parse_bdf_key)
+    for root in roots:
+        roots[root].sort(key=parse_bdf_key)
+
+    return devices, roots
+
+
+def safe_listdir(path):
+    try:
+        return os.listdir(path)
+    except (IOError, OSError):
+        return []
+
+
+def find_root_from_parts(parts):
+    for part in reversed(parts):
+        if ROOT_RE.match(part):
+            return part
+    return None
+
+
+def read_driver_module(device_path):
+    driver_path = os.path.join(device_path, "driver")
+    if not os.path.exists(driver_path):
+        return None
+    module_path = os.path.join(os.path.realpath(driver_path), "module")
+    if not os.path.exists(module_path):
+        return None
+    return readlink_basename(module_path)
+
+
+def find_slot(device_path, bdf, lspci_record, slot_map):
+    physical_slot = read_text(os.path.join(device_path, "physical_slot"))
+    if physical_slot:
+        return physical_slot
+
+    for key in ("PhySlot", "Physical Slot"):
+        value = lspci_record.get(key)
+        if value:
+            if isinstance(value, list):
+                return value[0]
+            return value
+
+    lower_bdf = bdf.lower()
+    prefix = lower_bdf.rsplit(".", 1)[0]
+    return slot_map.get(lower_bdf) or slot_map.get(prefix)
+
+
+def parse_speed(speed_text):
+    if not speed_text:
+        return None
+    match = SPEED_RE.search(speed_text)
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
+def parse_width(width_text):
+    if not width_text:
+        return None
+    match = re.search(r"([0-9]+)", width_text)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def normalize_link_width(width, speed):
+    if width not in VALID_LINK_WIDTHS:
+        return None
+    if width == 0 and speed is None:
+        return None
+    return width
+
+
+def speed_generation(speed):
+    if speed is None:
+        return None
+    generations = [
+        (2.5, "G1"),
+        (5.0, "G2"),
+        (8.0, "G3"),
+        (16.0, "G4"),
+        (32.0, "G5"),
+        (64.0, "G6"),
+    ]
+    for value, label in generations:
+        if abs(speed - value) < 0.2:
+            return label
+    return None
+
+
+def format_speed(speed):
+    if speed is None:
+        return "?"
+    if abs(speed - round(speed)) < 0.05:
+        return "%.1fGT/s" % speed
+    return ("%sGT/s" % speed).rstrip("0").rstrip(".")
+
+
+def format_link(info, palette):
+    cur_speed = parse_speed(info.get("current_link_speed"))
+    max_speed = parse_speed(info.get("max_link_speed"))
+    cur_width = normalize_link_width(
+        parse_width(info.get("current_link_width")), cur_speed
+    )
+    max_width = normalize_link_width(parse_width(info.get("max_link_width")), max_speed)
+
+    if (
+        cur_speed is None
+        and cur_width is None
+        and max_speed is None
+        and max_width is None
+    ):
+        return None
+    if cur_speed is None and cur_width is None:
+        return None
+
+    link_is_down = cur_width == 0
+    if link_is_down:
+        cur_text = "down"
+    else:
+        cur_text = "x%s@%s" % (
+            cur_width if cur_width is not None else "?",
+            format_speed(cur_speed),
+        )
+        gen = speed_generation(cur_speed)
+        if gen:
+            cur_text += "/" + gen
+
+    degraded = False
+    max_text = None
+    if max_speed is not None or max_width is not None:
+        max_text = "x%s@%s" % (
+            max_width if max_width is not None else "?",
+            format_speed(max_speed),
+        )
+        max_gen = speed_generation(max_speed)
+        if max_gen:
+            max_text += "/" + max_gen
+        if (
+            cur_speed is not None
+            and max_speed is not None
+            and cur_speed + 0.05 < max_speed
+        ):
+            degraded = True
+        if cur_width is not None and max_width is not None and cur_width < max_width:
+            degraded = True
+
+    text = "link=" + cur_text
+    if degraded and max_text:
+        text += "/max " + max_text
+
+    if link_is_down:
+        colored = "link=" + palette.warning(cur_text)
+    else:
+        colored = "link=" + palette.link_by_speed(cur_text, cur_speed)
+    if degraded and max_text:
+        colored += palette.muted("/max ") + palette.link_by_speed(max_text, max_speed)
+        if not link_is_down:
+            colored += " " + palette.warning("degraded")
+    plain_suffix = " degraded" if degraded and not link_is_down else ""
+    return colored if palette.enabled else text + plain_suffix
+
+
+def device_display_name(info):
+    lspci = info.get("lspci") or {}
+    vendor_name = strip_lspci_id(lspci.get("Vendor"))
+    device_name = strip_lspci_id(lspci.get("Device"))
+
+    if vendor_name and device_name:
+        if device_name.lower().startswith(vendor_name.lower()):
+            return device_name
+        return vendor_name + " " + device_name
+    return device_name or vendor_name
+
+
+def device_class_name(info):
+    lspci = info.get("lspci") or {}
+    class_name = strip_lspci_id(lspci.get("Class"))
+    return class_name
+
+
+def format_device(info, palette, verbose=False):
+    parts = [palette.bdf(info["bdf"])]
+
+    if info.get("slot"):
+        parts.append(palette.slot("slot=%s" % info["slot"]))
+
+    link = format_link(info, palette)
+    if link:
+        parts.append(link)
+
+    vendor_id = info.get("vendor_id") or "????"
+    device_id = info.get("device_id") or "????"
+    parts.append(palette.ids("id=%s:%s" % (vendor_id, device_id)))
+
+    if verbose:
+        subsystem_vendor = info.get("subsystem_vendor_id")
+        subsystem_device = info.get("subsystem_device_id")
+        if (
+            subsystem_vendor
+            and subsystem_device
+            and (subsystem_vendor != "0000" or subsystem_device != "0000")
+        ):
+            parts.append(
+                palette.ids("sub=%s:%s" % (subsystem_vendor, subsystem_device))
+            )
+
+    if info.get("driver"):
+        parts.append(palette.driver("drv=%s" % info["driver"]))
+    if verbose and info.get("module") and info.get("module") != info.get("driver"):
+        parts.append(palette.driver("mod=%s" % info["module"]))
+
+    numa = info.get("numa_node")
+    if numa not in (None, "", "-1"):
+        parts.append(palette.meta("numa=%s" % numa))
+
+    if info.get("iommu_group"):
+        parts.append(palette.meta("iommu=%s" % info["iommu_group"]))
+
+    sriov = format_sriov(info)
+    if sriov:
+        parts.append(palette.meta(sriov))
+
+    if info.get("is_vf"):
+        parts.append(palette.meta("vf"))
+    elif info.get("is_pf"):
+        parts.append(palette.meta("pf"))
+
+    if verbose and info.get("power_state"):
+        parts.append(palette.meta("power=%s" % info["power_state"]))
+    if verbose and info.get("revision"):
+        parts.append(palette.meta("rev=%s" % info["revision"]))
+
+    class_name = device_class_name(info)
+    if class_name:
+        parts.append(palette.muted(class_name))
+    elif info.get("class_id"):
+        parts.append(palette.muted("class=%s" % info["class_id"]))
+
+    name = device_display_name(info)
+    if name:
+        parts.append(palette.device_name(name, info))
+
+    return " ".join(parts)
+
+
+def format_sriov(info):
+    total = info.get("sriov_totalvfs")
+    active = info.get("sriov_numvfs")
+    try:
+        total_int = int(total) if total is not None else 0
+        active_int = int(active) if active is not None else 0
+    except ValueError:
+        return None
+    if total_int <= 0:
+        return None
+    return "sriov=%s/%s" % (active_int, total_int)
+
+
+def render_tree(
+    devices, roots, palette, ascii_tree=False, max_depth=None, verbose=False
+):
+    if ascii_tree:
+        branch = "+- "
+        last = "`- "
+        vertical = "|  "
+        empty = "   "
+    else:
+        branch = "\u251c\u2500 "
+        last = "\u2514\u2500 "
+        vertical = "\u2502  "
+        empty = "   "
+
+    lines = []
+    root_names = sorted(roots.keys(), key=parse_root_key)
+    header = "PCIe topology: %d %s, %d %s" % (
+        len(devices),
+        plural("device", len(devices)),
+        len(root_names),
+        plural("root", len(root_names)),
+    )
+    lines.append(palette.root(header) if palette.enabled else header)
+
+    for index, root in enumerate(root_names):
+        root_is_last = index == len(root_names) - 1
+        connector = last if root_is_last else branch
+        children = roots.get(root, [])
+        root_label = "%s (%d direct device%s)" % (
+            root,
+            len(children),
+            "" if len(children) == 1 else "s",
+        )
+        lines.append(palette.tree(connector) + palette.root(root_label))
+        prefix = empty if root_is_last else vertical
+        render_children(
+            devices,
+            children,
+            prefix,
+            lines,
+            palette,
+            branch,
+            last,
+            vertical,
+            empty,
+            1,
+            max_depth,
+            verbose,
+            set(),
+        )
+    return "\n".join(lines)
+
+
+def plural(word, count):
+    return word if count == 1 else word + "s"
+
+
+def render_children(
+    devices,
+    bdfs,
+    prefix,
+    lines,
+    palette,
+    branch,
+    last,
+    vertical,
+    empty,
+    depth,
+    max_depth,
+    verbose,
+    seen,
+):
+    for index, bdf in enumerate(bdfs):
+        if bdf in seen:
+            continue
+        seen.add(bdf)
+        info = devices[bdf]
+        is_last = index == len(bdfs) - 1
+        connector = last if is_last else branch
+        lines.append(
+            palette.tree(prefix + connector)
+            + format_device(info, palette, verbose=verbose)
+        )
+        child_bdfs = info.get("children") or []
+        if child_bdfs:
+            child_prefix = prefix + (empty if is_last else vertical)
+            if max_depth is not None and depth >= max_depth:
+                more_connector = last
+                more_label = "... %d child device%s hidden" % (
+                    len(child_bdfs),
+                    "" if len(child_bdfs) == 1 else "s",
+                )
+                lines.append(
+                    palette.tree(child_prefix + more_connector)
+                    + palette.muted(more_label)
+                )
+            else:
+                render_children(
+                    devices,
+                    child_bdfs,
+                    child_prefix,
+                    lines,
+                    palette,
+                    branch,
+                    last,
+                    vertical,
+                    empty,
+                    depth + 1,
+                    max_depth,
+                    verbose,
+                    seen,
+                )
+
+
+def want_color(mode):
+    if mode == "always":
+        return True
+    if mode == "never":
+        return False
+    if os.environ.get("NO_COLOR"):
+        return False
+    return sys.stdout.isatty()
+
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        description="Show Linux PCI/PCIe topology as a tree.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--sysfs-root",
+        default="/sys",
+        help="sysfs mount point to inspect",
+    )
+    parser.add_argument(
+        "--color",
+        choices=("auto", "always", "never"),
+        default="auto",
+        help="control ANSI color output",
+    )
+    parser.add_argument(
+        "--ascii",
+        action="store_true",
+        help="use ASCII tree connectors",
+    )
+    parser.add_argument(
+        "--no-lspci",
+        action="store_true",
+        help="do not call lspci for human-readable names",
+    )
+    parser.add_argument(
+        "--lspci-timeout",
+        type=int,
+        default=8,
+        help="seconds to wait for lspci",
+    )
+    parser.add_argument(
+        "--max-depth",
+        type=int,
+        default=None,
+        help="limit displayed device depth below each PCI root",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="show extra fields such as subsystem IDs, modules, revision, and power state",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv):
+    args = parse_args(argv)
+    palette = Palette(want_color(args.color))
+
+    lspci_info = {}
+    lspci_error = None
+    if not args.no_lspci:
+        lspci_info, lspci_error = load_lspci_info(timeout=args.lspci_timeout)
+
+    slot_map = load_slot_map(args.sysfs_root)
+    devices, roots = discover_devices(args.sysfs_root, lspci_info, slot_map)
+    output = render_tree(
+        devices,
+        roots,
+        palette,
+        ascii_tree=args.ascii,
+        max_depth=args.max_depth,
+        verbose=args.verbose,
+    )
+    print(output)
+    if lspci_error:
+        print(
+            palette.muted("note: %s; names may be less descriptive" % lspci_error),
+            file=sys.stderr,
+        )
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    except (AttributeError, ValueError):
+        pass
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except BrokenPipeError:
+        try:
+            sys.stdout.close()
+        except Exception:
+            pass
+        sys.exit(0)
+    except RuntimeError as exc:
+        print("error: %s" % exc, file=sys.stderr)
+        sys.exit(1)
