@@ -11,6 +11,7 @@ from datetime import datetime
 
 
 DEFAULT_SOUND_FILE = "/System/Library/Sounds/Ping.aiff"
+WATCH_RETRY_SLEEP_SECONDS = 3
 COLOR_ENABLED = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
 RESET = "\033[0m" if COLOR_ENABLED else ""
 RED = "\033[31m" if COLOR_ENABLED else ""
@@ -70,6 +71,10 @@ Notes:
 
 
 class UsageError(Exception):
+    pass
+
+
+class WatchStreamError(Exception):
     pass
 
 
@@ -347,6 +352,7 @@ def stream_watch_events(cmd, state):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     decoder = json.JSONDecoder()
     buffer = ""
+    watch_error = None
 
     def shutdown(*_args):
         proc.terminate()
@@ -374,14 +380,21 @@ def stream_watch_events(cmd, state):
                 except json.JSONDecodeError:
                     break
                 buffer = buffer[index:]
-                handle_watch_event(event, state)
+                try:
+                    handle_watch_event(event, state)
+                except WatchStreamError as exc:
+                    watch_error = str(exc)
+                    proc.terminate()
+                    break
     finally:
         stderr = proc.stderr.read().decode("utf-8", errors="replace").strip()
         returncode = proc.wait()
-        if returncode != 0:
-            if stderr:
-                print(stderr, file=sys.stderr)
-            raise SystemExit(returncode)
+
+    return {
+        "returncode": returncode,
+        "stderr": stderr,
+        "watch_error": watch_error,
+    }
 
 
 def handle_watch_event(event, state):
@@ -390,8 +403,7 @@ def handle_watch_event(event, state):
 
     if event_type == "ERROR" or pod.get("kind") == "Status":
         message = pod.get("message") or pod.get("status") or "watch stream returned an error"
-        log_line("ERROR", message, RED)
-        raise SystemExit(1)
+        raise WatchStreamError(message)
 
     summary = pod_summary(pod)
     key = pod_key(summary)
@@ -436,7 +448,33 @@ def main():
 
     watch_cmd = [*base_cmd, "--watch", "--output-watch-events", "-o", "json"]
     log_line("WATCH", f"Streaming watch with: {shell_join(watch_cmd)}", CYAN)
-    stream_watch_events(watch_cmd, state)
+    retry_count = 0
+
+    while True:
+        result = stream_watch_events(watch_cmd, state)
+        retry_count += 1
+
+        reason_parts = []
+        if result["watch_error"]:
+            reason_parts.append(result["watch_error"])
+        if result["stderr"]:
+            reason_parts.append(result["stderr"])
+
+        if result["returncode"] == 0 and not result["watch_error"]:
+            message = (
+                f"watch stream stopped unexpectedly with exit code 0; "
+                f"retry {retry_count} in {WATCH_RETRY_SLEEP_SECONDS}s"
+            )
+        else:
+            details = " | ".join(reason_parts) if reason_parts else f"exit code {result['returncode']}"
+            message = (
+                f"watch stream failed ({details}); "
+                f"retry {retry_count} in {WATCH_RETRY_SLEEP_SECONDS}s"
+            )
+
+        log_line("RETRY", message, YELLOW)
+        time.sleep(WATCH_RETRY_SLEEP_SECONDS)
+        log_line("WATCH", f"Restarting watch: {shell_join(watch_cmd)}", CYAN)
 
 
 if __name__ == "__main__":
