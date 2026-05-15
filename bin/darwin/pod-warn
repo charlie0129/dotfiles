@@ -1,0 +1,443 @@
+#!/usr/bin/env python3
+
+import json
+import os
+import shlex
+import signal
+import subprocess
+import sys
+import time
+from datetime import datetime
+
+
+DEFAULT_SOUND_FILE = "/System/Library/Sounds/Ping.aiff"
+COLOR_ENABLED = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+RESET = "\033[0m" if COLOR_ENABLED else ""
+RED = "\033[31m" if COLOR_ENABLED else ""
+GREEN = "\033[32m" if COLOR_ENABLED else ""
+YELLOW = "\033[33m" if COLOR_ENABLED else ""
+CYAN = "\033[36m" if COLOR_ENABLED else ""
+BOLD = "\033[1m" if COLOR_ENABLED else ""
+
+HELP_TEXT = f"""\
+Watch Kubernetes pods and alert on macOS when they become NotReady.
+
+Usage:
+  {os.path.basename(sys.argv[0])} [--test-alert] [kubectl get pods args...]
+
+Description:
+  This script does one initial `kubectl get pods ...` to preview the selected pods,
+  then switches to a Kubernetes watch stream (`--watch`) to avoid polling.
+  It logs readiness state transitions with color and sends a macOS alert with
+  sound whenever a tracked pod becomes NotReady.
+
+Accepted arguments:
+  Most normal `kubectl get pods` selectors and scope flags are forwarded through,
+  for example:
+    -n, --namespace
+    -A, --all-namespaces
+    -l, --selector
+    --field-selector
+    --context
+    --cluster
+    --user
+    --kubeconfig
+    pod names, for example: api-0 api-1
+
+  Do not pass:
+    -o / --output
+    -w / --watch / --watch-only
+    --output-watch-events
+
+Examples:
+  {os.path.basename(sys.argv[0])} --test-alert
+  {os.path.basename(sys.argv[0])} -n payments -l app=api
+  {os.path.basename(sys.argv[0])} -A -l 'app in (api,worker)'
+  {os.path.basename(sys.argv[0])} -n default api-0 api-1
+  {os.path.basename(sys.argv[0])} pods -n kube-system -l k8s-app=kube-dns
+
+Notes:
+  - If you pass `pods`, `pod`, or `po`, it is ignored for convenience.
+  - Initial pod state is previewed but does not trigger alerts.
+  - New pods that appear later are tracked; an alert is sent only when a pod
+    transitions into NotReady during the watch.
+  - If you want macOS to prompt for Notification Center permissions the first time,
+    open Script Editor and run:
+      display notification "The command finished" with title "Success"
+    That step is useful for notification-center testing; this script itself uses
+    AppleScript alerts rather than notification-center banners.
+"""
+
+
+class UsageError(Exception):
+    pass
+
+
+def colorize(text, color):
+    return f"{color}{text}{RESET}" if color else text
+
+
+def log_line(label, message, color=""):
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{BOLD}{ts}{RESET} {colorize(label, color)} {message}", flush=True)
+
+
+def shell_join(parts):
+    return " ".join(shlex.quote(part) for part in parts)
+
+
+def normalize_args(raw_args):
+    if any(arg in ("-h", "--help") for arg in raw_args):
+        print(HELP_TEXT)
+        raise SystemExit(0)
+
+    test_alert = False
+    disallowed = {
+        "-o",
+        "--output",
+        "-w",
+        "--watch",
+        "--watch-only",
+        "--output-watch-events",
+    }
+    normalized = []
+
+    for arg in raw_args:
+        if arg in ("--test-alert", "--test-notification"):
+            test_alert = True
+            continue
+
+        if arg in ("pod", "pods", "po"):
+            continue
+
+        if arg in disallowed:
+            raise UsageError(f"unsupported argument: {arg}")
+
+        if arg.startswith("--output=") or arg.startswith("--watch=") or arg.startswith("--watch-only="):
+            raise UsageError(f"unsupported argument: {arg}")
+
+        if arg.startswith("--output-watch-events="):
+            raise UsageError(f"unsupported argument: {arg}")
+
+        normalized.append(arg)
+
+    return normalized, test_alert
+
+
+def kubectl_base_args(user_args):
+    return ["kubectl", "get", "pods", *user_args]
+
+
+def run_json_command(cmd):
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        if result.stderr:
+            print(result.stderr.strip(), file=sys.stderr)
+        raise SystemExit(result.returncode)
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        print(f"Failed to parse kubectl JSON output: {exc}", file=sys.stderr)
+        raise SystemExit(1)
+
+
+def items_from_get(payload):
+    if payload.get("kind", "").endswith("List"):
+        return payload.get("items", [])
+    return [payload]
+
+
+def pod_ready_condition(pod):
+    for condition in pod.get("status", {}).get("conditions", []) or []:
+        if condition.get("type") == "Ready":
+            return condition.get("status", "Unknown")
+    return "Unknown"
+
+
+def ready_counts(pod):
+    statuses = pod.get("status", {}).get("containerStatuses", []) or []
+    total = len(statuses)
+    ready = sum(1 for status in statuses if status.get("ready"))
+    return ready, total
+
+
+def pod_reason(pod):
+    status = pod.get("status", {}) or {}
+    if status.get("reason"):
+        return status["reason"]
+
+    for state in status.get("containerStatuses", []) or []:
+        waiting = ((state.get("state") or {}).get("waiting") or {})
+        terminated = ((state.get("state") or {}).get("terminated") or {})
+        if waiting.get("reason"):
+            return waiting["reason"]
+        if terminated.get("reason"):
+            return terminated["reason"]
+
+    return ""
+
+
+def pod_message(pod):
+    status = pod.get("status", {}) or {}
+    if status.get("message"):
+        return status["message"]
+
+    for state in status.get("containerStatuses", []) or []:
+        waiting = ((state.get("state") or {}).get("waiting") or {})
+        terminated = ((state.get("state") or {}).get("terminated") or {})
+        if waiting.get("message"):
+            return waiting["message"]
+        if terminated.get("message"):
+            return terminated["message"]
+
+    return ""
+
+
+def pod_summary(pod):
+    metadata = pod.get("metadata", {}) or {}
+    status = pod.get("status", {}) or {}
+    ready = pod_ready_condition(pod)
+    ready_now, ready_total = ready_counts(pod)
+    return {
+        "namespace": metadata.get("namespace", "default"),
+        "name": metadata.get("name", "<unknown>"),
+        "uid": metadata.get("uid", ""),
+        "phase": status.get("phase", "Unknown"),
+        "ready": ready,
+        "ready_now": ready_now,
+        "ready_total": ready_total,
+        "reason": pod_reason(pod),
+        "message": pod_message(pod),
+    }
+
+
+def pod_key(summary):
+    return f"{summary['namespace']}/{summary['name']}"
+
+
+def preview_pods(items):
+    print()
+    print(f"{BOLD}Selected pods{RESET}")
+    print(f"{BOLD}{'NAMESPACE':<24} {'NAME':<56} {'READY':<7} {'PHASE':<12} STATUS{RESET}")
+
+    if not items:
+        print(colorize("No pods matched the initial selection. Watching for future matches.", YELLOW))
+        print()
+        return
+
+    for item in items:
+        summary = pod_summary(item)
+        ready_text = f"{summary['ready_now']}/{summary['ready_total']}"
+        if summary["ready"] == "True":
+            status_text = colorize("Ready", GREEN)
+        elif summary["ready"] == "False":
+            status_text = colorize("NotReady", RED)
+        else:
+            status_text = colorize(summary["ready"], YELLOW)
+        print(
+            f"{summary['namespace']:<24} {summary['name']:<56} "
+            f"{ready_text:<7} {summary['phase']:<12} {status_text}"
+        )
+    print()
+
+
+def apple_quote(value):
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def play_sound():
+    for _ in range(5):
+        subprocess.Popen(
+            ["osascript", "-e", "beep"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        time.sleep(0.3)
+
+
+def show_alert(title, message, critical=False):
+    severity = " as critical" if critical else ""
+    script = (
+        f"display alert {apple_quote(title)} "
+        f"message {apple_quote(message)}{severity} "
+        'buttons {"OK"} default button "OK"'
+    )
+    proc = subprocess.Popen(
+        ["osascript", "-e", script],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    return proc
+
+
+def alert_not_ready(summary):
+    title = "Kubernetes Pod Not Ready"
+    message = (
+        f"Pod: {summary['namespace']}/{summary['name']}\n"
+        f"State: {summary['phase']} {summary['ready_now']}/{summary['ready_total']}"
+    )
+    if summary["reason"]:
+        message += f"\nReason: {summary['reason']}"
+    play_sound()
+    show_alert(title, message, critical=True)
+
+
+def alert_test():
+    print("macOS alert test:", flush=True)
+    print("  This script uses AppleScript alerts, not Notification Center banners.", flush=True)
+    print("  If you also want macOS to prompt for Notification Center permissions,", flush=True)
+    print("  open Script Editor and run:", flush=True)
+    print('    display notification "The command finished" with title "Success"', flush=True)
+    print(flush=True)
+
+    play_sound()
+    proc = show_alert(
+        "pod-warn Alert Test",
+        "If you heard a sound and saw this alert, the macOS alert path is working.",
+        critical=False,
+    )
+    _, stderr = proc.communicate()
+    if proc.returncode != 0:
+        message = stderr.strip() if stderr else "failed to show alert"
+        print(message, file=sys.stderr)
+        raise SystemExit(proc.returncode)
+
+
+def transition_message(old_summary, new_summary):
+    extra = f"{new_summary['ready_now']}/{new_summary['ready_total']} phase={new_summary['phase']}"
+    if new_summary["reason"]:
+        extra += f" reason={new_summary['reason']}"
+    if new_summary["message"]:
+        single_line_message = " ".join(new_summary["message"].splitlines())
+        extra += f" message={single_line_message}"
+    if old_summary and old_summary["uid"] and old_summary["uid"] != new_summary["uid"]:
+        extra += " recreated=true"
+    return extra
+
+
+def log_transition(old_summary, new_summary):
+    key = pod_key(new_summary)
+    if old_summary is None:
+        log_line("TRACK", f"{key} {transition_message(old_summary, new_summary)}", CYAN)
+        return
+
+    old_ready = old_summary["ready"]
+    new_ready = new_summary["ready"]
+    if old_ready == new_ready:
+        return
+
+    if new_ready == "False":
+        log_line("NOT READY", f"{key} {transition_message(old_summary, new_summary)}", RED)
+        alert_not_ready(new_summary)
+    elif new_ready == "True":
+        log_line("READY", f"{key} {transition_message(old_summary, new_summary)}", GREEN)
+    else:
+        log_line("UNKNOWN", f"{key} {transition_message(old_summary, new_summary)}", YELLOW)
+
+
+def log_deleted(summary):
+    key = pod_key(summary)
+    log_line("DELETED", key, YELLOW)
+
+
+def stream_watch_events(cmd, state):
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    decoder = json.JSONDecoder()
+    buffer = ""
+
+    def shutdown(*_args):
+        proc.terminate()
+        raise SystemExit(130)
+
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
+    try:
+        while True:
+            chunk = proc.stdout.read1(4096)
+            if not chunk:
+                break
+            buffer += chunk.decode("utf-8", errors="replace")
+
+            while True:
+                stripped = buffer.lstrip()
+                consumed = len(buffer) - len(stripped)
+                if consumed:
+                    buffer = stripped
+                if not buffer:
+                    break
+                try:
+                    event, index = decoder.raw_decode(buffer)
+                except json.JSONDecodeError:
+                    break
+                buffer = buffer[index:]
+                handle_watch_event(event, state)
+    finally:
+        stderr = proc.stderr.read().decode("utf-8", errors="replace").strip()
+        returncode = proc.wait()
+        if returncode != 0:
+            if stderr:
+                print(stderr, file=sys.stderr)
+            raise SystemExit(returncode)
+
+
+def handle_watch_event(event, state):
+    event_type = event.get("type", "UNKNOWN")
+    pod = event.get("object") or {}
+
+    if event_type == "ERROR" or pod.get("kind") == "Status":
+        message = pod.get("message") or pod.get("status") or "watch stream returned an error"
+        log_line("ERROR", message, RED)
+        raise SystemExit(1)
+
+    summary = pod_summary(pod)
+    key = pod_key(summary)
+    previous = state.get(key)
+
+    if event_type == "DELETED":
+        if previous is not None:
+            log_deleted(previous)
+            state.pop(key, None)
+        return
+
+    log_transition(previous, summary)
+    state[key] = summary
+
+
+def main():
+    try:
+        user_args, test_alert = normalize_args(sys.argv[1:])
+    except UsageError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        print(file=sys.stderr)
+        print(HELP_TEXT, file=sys.stderr)
+        raise SystemExit(2)
+
+    if test_alert:
+        log_line("TEST", "Sending macOS alert test", CYAN)
+        alert_test()
+        log_line("TEST", "Alert test completed", GREEN)
+        raise SystemExit(0)
+
+    base_cmd = kubectl_base_args(user_args)
+    initial_cmd = [*base_cmd, "-o", "json"]
+    log_line("START", f"Previewing selection with: {shell_join(base_cmd)}", CYAN)
+    initial = run_json_command(initial_cmd)
+    items = items_from_get(initial)
+    preview_pods(items)
+
+    state = {}
+    for item in items:
+        summary = pod_summary(item)
+        state[pod_key(summary)] = summary
+
+    watch_cmd = [*base_cmd, "--watch", "--output-watch-events", "-o", "json"]
+    log_line("WATCH", f"Streaming watch with: {shell_join(watch_cmd)}", CYAN)
+    stream_watch_events(watch_cmd, state)
+
+
+if __name__ == "__main__":
+    main()

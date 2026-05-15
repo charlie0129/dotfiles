@@ -68,7 +68,7 @@ highlight Folded ctermbg=NONE guibg=NONE
 
 " Show invisible chars
 set list
-set listchars=tab:»\ ,trail:·,extends:>,precedes:<,nbsp:+
+set listchars=tab:»\ ,trail:•,nbsp:␣,eol:↴,extends:>,precedes:<
 
 " Statusline
 set statusline=%f\ %m%r%h%w\ [%{&ff}]\ [%Y]\ [%l,%c]\ [%p%%]
