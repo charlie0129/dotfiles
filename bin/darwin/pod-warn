@@ -11,7 +11,7 @@ from datetime import datetime
 
 
 DEFAULT_SOUND_FILE = "/System/Library/Sounds/Ping.aiff"
-WATCH_RETRY_SLEEP_SECONDS = 3
+WATCH_RETRY_SLEEP_SECONDS = 1
 COLOR_ENABLED = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
 RESET = "\033[0m" if COLOR_ENABLED else ""
 RED = "\033[31m" if COLOR_ENABLED else ""
