@@ -1,0 +1,617 @@
+#!/usr/bin/env python3
+"""
+macho-bundle-deps: recursively bundle and patch macOS Mach-O dylib dependencies.
+
+Typical use:
+
+  macho-bundle-deps \
+    --lib-dir ~/bin/_qemu-11.0.1/lib \
+    --prefix /opt/homebrew \
+    ~/bin/_qemu-11.0.1/bin/*
+
+This copies matching dylibs into --lib-dir and patches load commands:
+
+  executable -> bundled dylib: @executable_path/../lib/libfoo.dylib
+  bundled dylib -> bundled dylib: @loader_path/libfoo.dylib
+
+It is designed for app-local CLI/tool bundles, not .app bundles.
+
+Requires:
+  - macOS
+  - otool
+  - install_name_tool
+  - file
+"""
+
+from __future__ import annotations
+
+import argparse
+import filecmp
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+SYSTEM_PREFIXES = (
+    "/usr/lib/",
+    "/System/Library/",
+)
+
+ANSI_RESET = "\033[0m"
+ANSI_STYLES = {
+    "header": "1;36",
+    "copy": "1;32",
+    "skip-copy": "1;33",
+    "change": "1;35",
+    "rpath": "1;34",
+    "id": "1;36",
+    "warn": "1;33",
+    "error": "1;31",
+    "path": "0;36",
+    "old-path": "0;33",
+    "new-path": "0;32",
+    "reason": "2",
+    "dim": "2",
+}
+
+
+def stream_supports_color(stream: object) -> bool:
+    return (
+        hasattr(stream, "isatty")
+        and stream.isatty()
+        and os.environ.get("TERM") != "dumb"
+        and "NO_COLOR" not in os.environ
+    )
+
+
+def style(text: str, style_name: str, *, stream: object = sys.stdout) -> str:
+    if not stream_supports_color(stream):
+        return text
+    code = ANSI_STYLES[style_name]
+    return f"\033[{code}m{text}{ANSI_RESET}"
+
+
+def path_text(path: str | Path, *, role: str = "path", stream: object = sys.stdout) -> str:
+    return style(str(path), role, stream=stream)
+
+
+def arrow(*, stream: object = sys.stdout) -> str:
+    return style(" -> ", "dim", stream=stream)
+
+
+def log_stdout(message: str) -> None:
+    print(message)
+
+
+def log_stderr(message: str) -> None:
+    print(message, file=sys.stderr)
+
+
+def format_header(file: Path) -> str:
+    return f"{style('patch', 'header')}: {path_text(file)}"
+
+
+def format_action(label: str, details: str) -> str:
+    return f"  {style(label, label)}: {details}"
+
+
+def format_copy_line(label: str, src: Path, dst: Path, reason: str) -> str:
+    details = (
+        f"{path_text(src, role='old-path')}"
+        f"{arrow()}"
+        f"{path_text(dst, role='new-path')}"
+        f" ({style(reason, 'reason')})"
+    )
+    return format_action(label, details)
+
+
+def format_change_line(label: str, old: str | Path, new: str | Path) -> str:
+    details = (
+        f"{path_text(old, role='old-path')}"
+        f"{arrow()}"
+        f"{path_text(new, role='new-path')}"
+    )
+    return format_action(label, details)
+
+
+def run(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        args,
+        check=check,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def die(msg: str) -> None:
+    log_stderr(f"{style('error', 'error', stream=sys.stderr)}: {msg}")
+    sys.exit(1)
+
+
+def is_macho(path: Path) -> bool:
+    if not path.is_file():
+        return False
+
+    try:
+        out = run(["file", "-b", str(path)], check=False).stdout
+    except FileNotFoundError:
+        die("missing required command: file")
+
+    return "Mach-O" in out
+
+
+def is_dylib(path: Path) -> bool:
+    return path.suffix == ".dylib" or ".dylib" in path.name
+
+
+def otool_deps(path: Path) -> list[str]:
+    try:
+        out = run(["otool", "-L", str(path)], check=False).stdout
+    except FileNotFoundError:
+        die("missing required command: otool")
+
+    # otool -L output differs subtly between executables and dylibs:
+    #
+    #   executable:
+    #     file:
+    #       dep1
+    #       dep2
+    #
+    #   dylib:
+    #     file:
+    #       dylib's own install name / ID   <-- not a dependency
+    #       dep1
+    #       dep2
+    #
+    # Do not treat the dylib's own install name as a dependency, otherwise
+    # copied Homebrew dylibs look like permanently unpatched leftovers.
+    lines = out.splitlines()[1:]
+    if is_dylib(path) and lines:
+        lines = lines[1:]
+
+    deps: list[str] = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        dep = line.split(" ", 1)[0]
+        deps.append(dep)
+
+    return deps
+
+
+def otool_id(path: Path) -> str | None:
+    try:
+        out = run(["otool", "-D", str(path)], check=False).stdout
+    except FileNotFoundError:
+        die("missing required command: otool")
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    if len(lines) < 2:
+        return None
+    return lines[1]
+
+
+def rpaths(path: Path) -> set[str]:
+    try:
+        out = run(["otool", "-l", str(path)], check=False).stdout
+    except FileNotFoundError:
+        die("missing required command: otool")
+
+    result: set[str] = set()
+    in_rpath = False
+    for line in out.splitlines():
+        s = line.strip()
+        if s == "cmd LC_RPATH":
+            in_rpath = True
+            continue
+        if in_rpath and s.startswith("path "):
+            # path @loader_path (offset 12)
+            parts = s.split()
+            if len(parts) >= 2:
+                result.add(parts[1])
+            in_rpath = False
+
+    return result
+
+
+def install_name_tool(args: list[str], *, ignore_error: bool = False) -> None:
+    try:
+        proc = run(["install_name_tool", *args], check=False)
+    except FileNotFoundError:
+        die("missing required command: install_name_tool")
+
+    if proc.returncode != 0 and not ignore_error:
+        print(proc.stderr, file=sys.stderr, end="")
+        raise subprocess.CalledProcessError(proc.returncode, ["install_name_tool", *args])
+
+
+def should_bundle(dep: str, prefixes: tuple[str, ...], include: tuple[str, ...], exclude: tuple[str, ...]) -> bool:
+    if dep.startswith("@"):
+        return False
+    if dep.startswith(SYSTEM_PREFIXES):
+        return False
+    if exclude and any(dep.startswith(p) for p in exclude):
+        return False
+    if include and not any(dep.startswith(p) for p in include):
+        return False
+    return any(dep.startswith(p) for p in prefixes)
+
+
+def collect_roots(inputs: list[str], recursive: bool) -> list[Path]:
+    roots: list[Path] = []
+
+    for raw in inputs:
+        p = Path(raw).expanduser().resolve()
+        if p.is_dir():
+            if recursive:
+                candidates = [x for x in p.rglob("*") if x.is_file()]
+            else:
+                candidates = [x for x in p.iterdir() if x.is_file()]
+            roots.extend(x for x in candidates if is_macho(x))
+        elif p.is_file():
+            if is_macho(p):
+                roots.append(p)
+        else:
+            log_stderr(
+                f"{style('warn', 'warn', stream=sys.stderr)}: "
+                f"input does not exist: {path_text(raw, stream=sys.stderr)}"
+            )
+
+    # stable de-dup
+    seen: set[Path] = set()
+    out: list[Path] = []
+    for p in roots:
+        if p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
+def relative_loader_ref(file: Path, lib_dir: Path, libname: str) -> str:
+    """
+    For dylibs inside lib_dir, prefer @loader_path/<relative>/lib.dylib.
+
+    In the normal flat layout, this is simply @loader_path/libfoo.dylib.
+    If the dylib is in a subdirectory under lib_dir, this still works.
+    """
+    parent = file.parent.resolve()
+    rel = os.path.relpath(lib_dir.resolve(), parent)
+    if rel == ".":
+        return f"@loader_path/{libname}"
+    return f"@loader_path/{rel}/{libname}"
+
+
+def executable_ref(executable_lib_ref: str, libname: str) -> str:
+    return f"{executable_lib_ref.rstrip('/')}/{libname}"
+
+
+def path_is_relative_to(path: Path, parent: Path) -> bool:
+    try:
+        path.resolve().relative_to(parent.resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def paths_are_same_file(src: Path, dst: Path) -> bool:
+    try:
+        return src.samefile(dst)
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return False
+
+
+def files_have_same_content(src: Path, dst: Path) -> bool:
+    try:
+        return filecmp.cmp(src, dst, shallow=False)
+    except OSError:
+        return False
+
+
+def bundled_dep_ref(file: Path, *, lib_dir: Path, executable_lib_ref: str, libname: str) -> str:
+    if path_is_relative_to(file, lib_dir):
+        return relative_loader_ref(file, lib_dir, libname)
+    return executable_ref(executable_lib_ref, libname)
+
+
+def patch_file(
+    file: Path,
+    *,
+    lib_dir: Path,
+    prefixes: tuple[str, ...],
+    include: tuple[str, ...],
+    exclude: tuple[str, ...],
+    executable_lib_ref: str,
+    set_dylib_id: bool,
+    dry_run: bool,
+    verbose: bool,
+) -> list[Path]:
+    newly_copied: list[Path] = []
+    printed_header = False
+
+    def log_action(message: str) -> None:
+        nonlocal printed_header
+        if not verbose:
+            return
+        if not printed_header:
+            log_stdout(format_header(file))
+            printed_header = True
+        log_stdout(message)
+
+    if not is_macho(file):
+        return newly_copied
+
+    file = file.resolve()
+    lib_dir = lib_dir.resolve()
+    in_lib_dir = path_is_relative_to(file, lib_dir)
+
+    # Make copied Homebrew libs writable. Some package managers install read-only files.
+    if not dry_run:
+        try:
+            file.chmod(file.stat().st_mode | 0o200)
+        except OSError:
+            pass
+
+    if in_lib_dir:
+        # For bundled dylibs, make their own install name relative too.
+        if set_dylib_id and is_dylib(file):
+            new_id = f"@loader_path/{file.name}"
+            old_id = otool_id(file)
+            if old_id != new_id:
+                log_action(format_change_line("id", old_id or "<none>", new_id))
+                if not dry_run:
+                    install_name_tool(["-id", new_id, str(file)])
+
+        desired_rpath = "@loader_path"
+        if desired_rpath not in rpaths(file):
+            log_action(format_action("rpath", f"add {path_text(desired_rpath, role='new-path')}"))
+            if not dry_run:
+                install_name_tool(["-add_rpath", desired_rpath, str(file)], ignore_error=True)
+    else:
+        desired_rpath = executable_lib_ref.rsplit("/", 1)[0]
+        if desired_rpath.startswith("@") and desired_rpath not in rpaths(file):
+            log_action(format_action("rpath", f"add {path_text(desired_rpath, role='new-path')}"))
+            if not dry_run:
+                install_name_tool(["-add_rpath", desired_rpath, str(file)], ignore_error=True)
+
+    for dep in otool_deps(file):
+        if not should_bundle(dep, prefixes, include, exclude):
+            continue
+
+        src = Path(dep)
+        libname = src.name
+        dst = lib_dir / libname
+
+        copy_reason = "new file"
+        should_copy = True
+        if dst.exists():
+            if paths_are_same_file(src, dst):
+                copy_reason = "same file"
+                should_copy = False
+            elif files_have_same_content(src, dst):
+                copy_reason = "same contents"
+                should_copy = False
+            else:
+                copy_reason = "overwrite existing file"
+
+        if should_copy:
+            log_action(format_copy_line("copy", src, dst, copy_reason))
+            if not dry_run:
+                lib_dir.mkdir(parents=True, exist_ok=True)
+                # copy2 follows symlinks by default. This is what we want:
+                # copy the target dylib, not the symlink.
+                shutil.copy2(src, dst, follow_symlinks=True)
+                dst.chmod(dst.stat().st_mode | 0o200)
+            newly_copied.append(dst)
+        else:
+            log_action(format_copy_line("skip-copy", src, dst, copy_reason))
+
+        new_dep = bundled_dep_ref(
+            file,
+            lib_dir=lib_dir,
+            executable_lib_ref=executable_lib_ref,
+            libname=libname,
+        )
+
+        if dep != new_dep:
+            log_action(format_change_line("change", dep, new_dep))
+            if not dry_run:
+                install_name_tool(["-change", dep, new_dep, str(file)], ignore_error=True)
+
+    return newly_copied
+
+
+def find_leftovers(
+    files: list[Path],
+    *,
+    lib_dir: Path,
+    prefixes: tuple[str, ...],
+    include: tuple[str, ...],
+    exclude: tuple[str, ...],
+    executable_lib_ref: str,
+    dry_run: bool,
+) -> dict[Path, list[str]]:
+    leftovers: dict[Path, list[str]] = {}
+    for f in files:
+        if not is_macho(f):
+            continue
+        deps: list[str] = []
+        for dep in otool_deps(f):
+            effective_dep = dep
+            if dry_run and should_bundle(dep, prefixes, include, exclude):
+                effective_dep = bundled_dep_ref(
+                    f.resolve(),
+                    lib_dir=lib_dir,
+                    executable_lib_ref=executable_lib_ref,
+                    libname=Path(dep).name,
+                )
+            if should_bundle(effective_dep, prefixes, include, exclude):
+                deps.append(effective_dep)
+        if deps:
+            leftovers[f] = deps
+    return leftovers
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Recursively bundle and patch macOS Mach-O dylib dependencies.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "inputs",
+        nargs="+",
+        help="Mach-O files or directories to patch. Shell globs are OK.",
+    )
+    parser.add_argument(
+        "--lib-dir",
+        required=True,
+        help="Directory where copied dylibs are stored, e.g. PREFIX/lib.",
+    )
+    parser.add_argument(
+        "--prefix",
+        action="append",
+        default=[],
+        help="Dependency prefix to bundle. Can be repeated. Default: /opt/homebrew",
+    )
+    parser.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        help="Additional exact path prefix filter. Usually unnecessary. Can be repeated.",
+    )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        help="Dependency path prefix to skip. Can be repeated.",
+    )
+    parser.add_argument(
+        "--recursive-inputs",
+        action="store_true",
+        help="If an input is a directory, scan it recursively instead of one level.",
+    )
+    parser.add_argument(
+        "--executable-lib-ref",
+        default="@executable_path/../lib",
+        help="Reference used from input executables to bundled libraries.",
+    )
+    parser.add_argument(
+        "--no-set-dylib-id",
+        action="store_true",
+        help="Do not rewrite copied dylib install names with install_name_tool -id.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would be done without modifying files.",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Reduce output.",
+    )
+
+    args = parser.parse_args()
+
+    prefixes = tuple(args.prefix or ["/opt/homebrew"])
+    include = tuple(args.include)
+    exclude = tuple(args.exclude)
+    lib_dir = Path(args.lib_dir).expanduser().resolve()
+    verbose = not args.quiet
+
+    roots = collect_roots(args.inputs, recursive=args.recursive_inputs)
+    if not roots:
+        die("no Mach-O input files found")
+
+    if verbose:
+        log_stdout(f"inputs: {len(roots)} Mach-O file(s)")
+        log_stdout(f"lib-dir: {path_text(lib_dir)}")
+        log_stdout("bundle prefixes: " + ", ".join(path_text(prefix) for prefix in prefixes))
+
+    if not args.dry_run:
+        lib_dir.mkdir(parents=True, exist_ok=True)
+
+    # Work queue starts with user-provided roots. As deps are copied into lib_dir,
+    # those copied dylibs are added to the queue, causing transitive deps to be bundled.
+    queue: list[Path] = list(roots)
+    processed: set[Path] = set()
+
+    while queue:
+        f = queue.pop(0).resolve()
+        if f in processed:
+            continue
+        processed.add(f)
+
+        new_files = patch_file(
+            f,
+            lib_dir=lib_dir,
+            prefixes=prefixes,
+            include=include,
+            exclude=exclude,
+            executable_lib_ref=args.executable_lib_ref,
+            set_dylib_id=not args.no_set_dylib_id,
+            dry_run=args.dry_run,
+            verbose=verbose,
+        )
+
+        for nf in new_files:
+            if nf not in processed:
+                queue.append(nf)
+
+    # One more pass over roots + bundled libs catches cases where a library already
+    # existed before the script started and was not added as "newly copied".
+    all_files = list(roots)
+    if lib_dir.exists():
+        all_files.extend(p for p in lib_dir.iterdir() if p.is_file() and is_macho(p))
+
+    for f in all_files:
+        patch_file(
+            f,
+            lib_dir=lib_dir,
+            prefixes=prefixes,
+            include=include,
+            exclude=exclude,
+            executable_lib_ref=args.executable_lib_ref,
+            set_dylib_id=not args.no_set_dylib_id,
+            dry_run=args.dry_run,
+            verbose=False,
+        )
+
+    all_files = list(roots)
+    if lib_dir.exists():
+        all_files.extend(p for p in lib_dir.iterdir() if p.is_file() and is_macho(p))
+
+    leftovers = find_leftovers(
+        all_files,
+        lib_dir=lib_dir,
+        prefixes=prefixes,
+        include=include,
+        exclude=exclude,
+        executable_lib_ref=args.executable_lib_ref,
+        dry_run=args.dry_run,
+    )
+    if leftovers:
+        log_stderr(style("unpatched dependencies remain:", "error", stream=sys.stderr))
+        for f, deps in leftovers.items():
+            log_stderr(f"  {path_text(f, stream=sys.stderr)}")
+            for d in deps:
+                log_stderr(f"    {path_text(d, role='old-path', stream=sys.stderr)}")
+        return 1
+
+    if verbose:
+        if args.dry_run:
+            log_stdout(style("done: no matching absolute dependency paths would remain", "copy"))
+        else:
+            log_stdout(style("done: no matching absolute dependency paths remain", "copy"))
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
