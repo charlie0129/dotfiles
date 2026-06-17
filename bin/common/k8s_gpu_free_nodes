@@ -1,0 +1,333 @@
+#!/usr/bin/env python3
+"""Show Kubernetes nodes with free GPU capacity.
+
+The script computes free GPUs from Kubernetes scheduling data:
+
+    free = node.status.allocatable[resource] - sum(pod GPU requests on node)
+
+For GPU containers that only set limits, the limit is counted as the request,
+matching how extended resources are commonly scheduled.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from collections import defaultdict
+from decimal import Decimal, InvalidOperation
+
+
+TERMINAL_PHASES = {"Succeeded", "Failed"}
+DEFAULT_RESOURCE = "nvidia.com/gpu"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="List Kubernetes nodes with free GPU capacity."
+    )
+    parser.add_argument(
+        "-r",
+        "--resource",
+        action="append",
+        default=None,
+        help=(
+            "GPU resource name to inspect, for example nvidia.com/gpu. "
+            "Can be repeated. Defaults to nvidia.com/gpu."
+        ),
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Show all GPU nodes, including nodes with no free GPUs.",
+    )
+    parser.add_argument(
+        "--usable",
+        action="store_true",
+        help=(
+            "Only show nodes that are Ready, not cordoned, have free GPUs, "
+            "and have no NoSchedule/NoExecute taints."
+        ),
+    )
+    parser.add_argument(
+        "--pods",
+        action="store_true",
+        help="Show GPU-consuming pods under each node.",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON instead of a table.",
+    )
+    parser.add_argument(
+        "--context",
+        help="kubectl context to use.",
+    )
+    parser.add_argument(
+        "--kubeconfig",
+        help="Path to kubeconfig to pass to kubectl.",
+    )
+    parser.add_argument(
+        "--kubectl",
+        default="kubectl",
+        help="kubectl binary to run. Defaults to kubectl.",
+    )
+    return parser.parse_args()
+
+
+def kubectl_json(args: argparse.Namespace, *kubectl_args: str) -> dict:
+    cmd = [args.kubectl]
+    if args.kubeconfig:
+        cmd.extend(["--kubeconfig", args.kubeconfig])
+    if args.context:
+        cmd.extend(["--context", args.context])
+    cmd.extend(kubectl_args)
+    cmd.extend(["-o", "json"])
+
+    try:
+        proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except FileNotFoundError:
+        raise SystemExit(f"kubectl binary not found: {args.kubectl}") from None
+    except subprocess.CalledProcessError as exc:
+        sys.stderr.write(exc.stderr)
+        raise SystemExit(exc.returncode) from None
+
+    return json.loads(proc.stdout)
+
+
+def quantity(value: object) -> Decimal:
+    """Parse enough Kubernetes quantity syntax for scalar device resources."""
+    if value is None:
+        return Decimal(0)
+    text = str(value).strip()
+    if not text:
+        return Decimal(0)
+    if text.endswith("m"):
+        return Decimal(text[:-1]) / Decimal(1000)
+
+    suffixes = {
+        "Ki": Decimal(1024),
+        "Mi": Decimal(1024) ** 2,
+        "Gi": Decimal(1024) ** 3,
+        "Ti": Decimal(1024) ** 4,
+        "Pi": Decimal(1024) ** 5,
+        "Ei": Decimal(1024) ** 6,
+        "k": Decimal(1000),
+        "M": Decimal(1000) ** 2,
+        "G": Decimal(1000) ** 3,
+        "T": Decimal(1000) ** 4,
+        "P": Decimal(1000) ** 5,
+        "E": Decimal(1000) ** 6,
+    }
+    for suffix, multiplier in suffixes.items():
+        if text.endswith(suffix):
+            return Decimal(text[: -len(suffix)]) * multiplier
+
+    try:
+        return Decimal(text)
+    except InvalidOperation:
+        raise SystemExit(f"Could not parse Kubernetes quantity: {text!r}") from None
+
+
+def fmt_decimal(value: Decimal) -> str:
+    if value == value.to_integral_value():
+        return str(int(value))
+    return format(value.normalize(), "f")
+
+
+def container_amount(container: dict, resource: str) -> Decimal:
+    resources = container.get("resources") or {}
+    requests = resources.get("requests") or {}
+    limits = resources.get("limits") or {}
+    return max(quantity(requests.get(resource)), quantity(limits.get(resource)))
+
+
+def pod_amounts(pod: dict, resources: list[str]) -> dict[str, Decimal]:
+    spec = pod.get("spec") or {}
+    amounts: dict[str, Decimal] = {}
+    for resource in resources:
+        app_total = sum(
+            container_amount(container, resource)
+            for container in spec.get("containers", [])
+        )
+        init_max = max(
+            (
+                container_amount(container, resource)
+                for container in spec.get("initContainers", [])
+            ),
+            default=Decimal(0),
+        )
+        amounts[resource] = max(app_total, init_max)
+    return amounts
+
+
+def is_ready(node: dict) -> bool:
+    for condition in (node.get("status") or {}).get("conditions", []):
+        if condition.get("type") == "Ready":
+            return condition.get("status") == "True"
+    return False
+
+
+def taint_summary(node: dict) -> str:
+    taints = (node.get("spec") or {}).get("taints", [])
+    if not taints:
+        return "-"
+    return ",".join(
+        f"{taint.get('key')}={taint.get('value')}:{taint.get('effect')}"
+        if taint.get("value") is not None
+        else f"{taint.get('key')}:{taint.get('effect')}"
+        for taint in taints
+    )
+
+
+def has_blocking_taint(node: dict) -> bool:
+    return any(
+        taint.get("effect") in {"NoSchedule", "NoExecute"}
+        for taint in (node.get("spec") or {}).get("taints", [])
+    )
+
+
+def build_report(args: argparse.Namespace) -> list[dict]:
+    resources = args.resource or [DEFAULT_RESOURCE]
+    nodes = kubectl_json(args, "get", "nodes").get("items", [])
+    pods = kubectl_json(args, "get", "pods", "--all-namespaces").get("items", [])
+
+    used: dict[str, dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
+    pods_by_node: dict[str, list[dict]] = defaultdict(list)
+
+    for pod in pods:
+        spec = pod.get("spec") or {}
+        status = pod.get("status") or {}
+        node_name = spec.get("nodeName")
+        if not node_name or status.get("phase") in TERMINAL_PHASES:
+            continue
+
+        amounts = pod_amounts(pod, resources)
+        nonzero = {name: value for name, value in amounts.items() if value}
+        if not nonzero:
+            continue
+
+        for resource, value in nonzero.items():
+            used[node_name][resource] += value
+        pods_by_node[node_name].append(
+            {
+                "namespace": (pod.get("metadata") or {}).get("namespace", ""),
+                "name": (pod.get("metadata") or {}).get("name", ""),
+                "phase": status.get("phase", ""),
+                "resources": {key: fmt_decimal(value) for key, value in nonzero.items()},
+            }
+        )
+
+    rows: list[dict] = []
+    for node in nodes:
+        metadata = node.get("metadata") or {}
+        status = node.get("status") or {}
+        spec = node.get("spec") or {}
+        allocatable = status.get("allocatable") or {}
+        capacity = status.get("capacity") or {}
+        node_name = metadata.get("name", "")
+
+        for resource in resources:
+            alloc = quantity(allocatable.get(resource))
+            cap = quantity(capacity.get(resource))
+            if not alloc and not cap:
+                continue
+            used_value = used[node_name][resource]
+            free = alloc - used_value
+            if free < 0:
+                free = Decimal(0)
+            if not args.all and free <= 0:
+                continue
+            ready = is_ready(node)
+            schedulable = not spec.get("unschedulable", False)
+            usable = ready and schedulable and not has_blocking_taint(node) and free > 0
+            if args.usable and not usable:
+                continue
+            rows.append(
+                {
+                    "node": node_name,
+                    "resource": resource,
+                    "capacity": fmt_decimal(cap),
+                    "allocatable": fmt_decimal(alloc),
+                    "used": fmt_decimal(used_value),
+                    "free": fmt_decimal(free),
+                    "ready": ready,
+                    "schedulable": schedulable,
+                    "usable": usable,
+                    "taints": taint_summary(node),
+                    "pods": pods_by_node.get(node_name, []),
+                }
+            )
+
+    rows.sort(
+        key=lambda row: (
+            Decimal(row["free"]),
+            row["node"],
+            row["resource"],
+        ),
+        reverse=True,
+    )
+    return rows
+
+
+def print_table(rows: list[dict], show_pods: bool) -> None:
+    headers = [
+        "NODE",
+        "RESOURCE",
+        "ALLOC",
+        "USED",
+        "FREE",
+        "USABLE",
+        "READY",
+        "SCHED",
+        "TAINTS",
+    ]
+    data = [
+        [
+            row["node"],
+            row["resource"],
+            row["allocatable"],
+            row["used"],
+            row["free"],
+            "yes" if row["usable"] else "no",
+            "yes" if row["ready"] else "no",
+            "yes" if row["schedulable"] else "no",
+            row["taints"],
+        ]
+        for row in rows
+    ]
+    widths = [
+        max(len(headers[index]), *(len(record[index]) for record in data))
+        if data
+        else len(headers[index])
+        for index in range(len(headers))
+    ]
+
+    print("  ".join(header.ljust(widths[index]) for index, header in enumerate(headers)))
+    print("  ".join("-" * width for width in widths))
+    for record, row in zip(data, rows):
+        print("  ".join(value.ljust(widths[index]) for index, value in enumerate(record)))
+        if show_pods:
+            for pod in row["pods"]:
+                resources = ",".join(
+                    f"{key}={value}" for key, value in pod["resources"].items()
+                )
+                print(
+                    f"  - {pod['namespace']}/{pod['name']} "
+                    f"phase={pod['phase']} {resources}"
+                )
+
+
+def main() -> int:
+    args = parse_args()
+    rows = build_report(args)
+    if args.json:
+        print(json.dumps(rows, indent=2, sort_keys=True))
+    else:
+        print_table(rows, args.pods)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
