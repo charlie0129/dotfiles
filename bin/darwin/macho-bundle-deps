@@ -140,6 +140,13 @@ def is_macho(path: Path) -> bool:
     except FileNotFoundError:
         die("missing required command: file")
 
+    # Fat static archives are reported as "Mach-O universal binary" by file(1),
+    # but they do not have dylib load commands to patch. Treating them as Mach-O
+    # makes otool -L list archive members like libfoo.a(member.o), which are not
+    # copyable dependency paths.
+    if "ar archive" in out:
+        return False
+
     return "Mach-O" in out
 
 
@@ -168,16 +175,30 @@ def otool_deps(path: Path) -> list[str]:
     #
     # Do not treat the dylib's own install name as a dependency, otherwise
     # copied Homebrew dylibs look like permanently unpatched leftovers.
-    lines = out.splitlines()[1:]
-    if is_dylib(path) and lines:
-        lines = lines[1:]
-
+    # Universal binaries also repeat a non-indented architecture header before
+    # each slice, and static archives can contain non-indented member headers.
+    # Dependency rows are indented; parse only those rows and skip the dylib ID
+    # at the start of every dylib architecture section.
     deps: list[str] = []
-    for line in lines:
-        line = line.strip()
+    seen: set[str] = set()
+    skip_next_dylib_id = is_dylib(path)
+
+    for raw_line in out.splitlines()[1:]:
+        line = raw_line.strip()
         if not line:
             continue
-        dep = line.split(" ", 1)[0]
+
+        if not raw_line[0].isspace():
+            skip_next_dylib_id = is_dylib(path)
+            continue
+
+        dep = line.split(" (", 1)[0]
+        if skip_next_dylib_id:
+            skip_next_dylib_id = False
+            continue
+        if dep in seen:
+            continue
+        seen.add(dep)
         deps.append(dep)
 
     return deps
