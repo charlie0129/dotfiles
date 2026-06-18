@@ -1,0 +1,780 @@
+#!/usr/bin/env python3
+"""Select Kubernetes nodes by taint and optionally add/remove taints.
+
+Examples:
+  ./k8s_taint_nodes.py list 'glm.ai/app=pp:NoSchedule'
+  ./k8s_taint_nodes.py list 'node.kubernetes.io/unreachable'
+  ./k8s_taint_nodes.py list '!glm.ai/app:NoSchedule'
+  ./k8s_taint_nodes.py add 'glm.ai/app=pp:NoSchedule' 'maintenance=true:NoSchedule'
+  ./k8s_taint_nodes.py add 'glm.ai/app=pp:NoSchedule' 'maintenance=true:NoSchedule' --apply
+  ./k8s_taint_nodes.py remove 'maintenance=true:NoSchedule' 'maintenance:NoSchedule' --apply
+
+Taint selector syntax is comma-separated and all terms must match:
+  key                         node has a taint with key
+  !key                        node does not have a taint with key
+  key=value                   node has a taint with key and value
+  key!=value                  node does not have a taint with key and value
+  key:NoSchedule              node has key with this effect
+  key=value:NoExecute         node has key/value with this effect
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import shlex
+import subprocess
+import sys
+from dataclasses import dataclass
+from typing import Any
+
+
+VALID_EFFECTS = {"NoSchedule", "PreferNoSchedule", "NoExecute"}
+
+
+def should_color(mode: str) -> bool:
+    if mode == "always":
+        return True
+    if mode == "never":
+        return False
+    return (
+        sys.stdout.isatty()
+        and "NO_COLOR" not in os.environ
+        and os.environ.get("CLICOLOR") != "0"
+        and os.environ.get("TERM") != "dumb"
+    )
+
+
+def colorize(value: str, style: str, enabled: bool) -> str:
+    if not enabled or not value:
+        return value
+    return f"\033[{style}m{value}\033[0m"
+
+
+def pad_rendered(raw: str, rendered: str, width: int) -> str:
+    return rendered + (" " * (width - len(raw)))
+
+
+@dataclass(frozen=True)
+class TaintRequirement:
+    key: str
+    operator: str
+    value: str | None = None
+    effect: str | None = None
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Select nodes by taint and optionally mutate those nodes.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    parser.add_argument("--context", help="kubectl context to use.")
+    parser.add_argument("--kubeconfig", help="Path to kubeconfig to pass to kubectl.")
+    parser.add_argument(
+        "--kubectl", default="kubectl", help="kubectl binary to run. Defaults to kubectl."
+    )
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    list_parser = subparsers.add_parser(
+        "list", help="List nodes matching a taint selector."
+    )
+    add_common_args(list_parser)
+    list_parser.add_argument(
+        "taint_selector",
+        nargs="?",
+        default="*",
+        help="Taint selector. Use '*' or omit to match all nodes.",
+    )
+    list_parser.add_argument("--json", action="store_true", help="Emit JSON.")
+    list_parser.add_argument(
+        "--names",
+        action="store_true",
+        help="Print only node names, one per line.",
+    )
+    list_parser.add_argument(
+        "--color",
+        choices=("auto", "always", "never"),
+        default="auto",
+        help=(
+            "Color table output. Defaults to auto, which colors terminal output "
+            "unless NO_COLOR, CLICOLOR=0, or TERM=dumb is set."
+        ),
+    )
+
+    add_parser = subparsers.add_parser(
+        "add", help="Add taints to nodes matching a taint selector."
+    )
+    add_common_args(add_parser)
+    add_mutation_args(add_parser)
+    add_parser.add_argument("taint_selector", help="Taint selector for target nodes.")
+    add_parser.add_argument(
+        "taints",
+        nargs="+",
+        help="Taints to add, for example key=value:NoSchedule.",
+    )
+    add_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Pass --overwrite to kubectl taint.",
+    )
+
+    remove_parser = subparsers.add_parser(
+        "remove", help="Remove taints from nodes matching a taint selector."
+    )
+    add_common_args(remove_parser)
+    add_mutation_args(remove_parser)
+    remove_parser.add_argument("taint_selector", help="Taint selector for target nodes.")
+    remove_parser.add_argument(
+        "taints",
+        nargs="+",
+        help=(
+            "Taints to remove. Use key, key:Effect, key=value, or key=value:Effect. "
+            "Matching existing taints are removed as key:Effect-."
+        ),
+    )
+    return parser.parse_args()
+
+
+def add_common_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "-l",
+        "--label-selector",
+        help="Optional Kubernetes label selector to prefilter nodes.",
+    )
+
+
+def add_mutation_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Actually run kubectl taint. Without this, only prints commands.",
+    )
+    parser.add_argument(
+        "--color",
+        choices=("auto", "always", "never"),
+        default="auto",
+        help=(
+            "Color preview output. Defaults to auto, which colors terminal output "
+            "unless NO_COLOR, CLICOLOR=0, or TERM=dumb is set."
+        ),
+    )
+
+
+def kubectl_base(args: argparse.Namespace) -> list[str]:
+    cmd = [args.kubectl]
+    if args.kubeconfig:
+        cmd.extend(["--kubeconfig", args.kubeconfig])
+    if args.context:
+        cmd.extend(["--context", args.context])
+    return cmd
+
+
+def kubectl_json(args: argparse.Namespace, *kubectl_args: str) -> dict[str, Any]:
+    cmd = kubectl_base(args) + list(kubectl_args) + ["-o", "json"]
+    try:
+        proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except FileNotFoundError:
+        raise SystemExit(f"kubectl binary not found: {args.kubectl}") from None
+    except subprocess.CalledProcessError as exc:
+        sys.stderr.write(exc.stderr)
+        raise SystemExit(exc.returncode) from None
+    return json.loads(proc.stdout)
+
+
+def run_kubectl(args: argparse.Namespace, command: list[str]) -> None:
+    try:
+        proc = subprocess.run(
+            kubectl_base(args) + command,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        sys.stderr.write(exc.stderr)
+        if exc.stdout:
+            sys.stdout.write(exc.stdout)
+        raise SystemExit(exc.returncode) from None
+
+    if proc.stdout:
+        sys.stdout.write(proc.stdout)
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+
+
+def split_effect(text: str) -> tuple[str, str | None]:
+    if ":" not in text:
+        return text, None
+    body, possible_effect = text.rsplit(":", 1)
+    if possible_effect in VALID_EFFECTS:
+        return body, possible_effect
+    raise SystemExit(
+        f"Invalid taint effect in {text!r}. Expected one of: "
+        f"{', '.join(sorted(VALID_EFFECTS))}"
+    )
+
+
+def parse_taint_requirement(text: str) -> TaintRequirement:
+    raw = text.strip()
+    if not raw:
+        raise SystemExit("Empty taint selector term.")
+
+    body, effect = split_effect(raw)
+    if body.startswith("!"):
+        key = body[1:]
+        if not key:
+            raise SystemExit(f"Invalid taint selector term: {text!r}")
+        return TaintRequirement(key=key, operator="notexists", effect=effect)
+
+    if "!=" in body:
+        key, value = body.split("!=", 1)
+        operator = "neq"
+    elif "==" in body:
+        key, value = body.split("==", 1)
+        operator = "eq"
+    elif "=" in body:
+        key, value = body.split("=", 1)
+        operator = "eq"
+    else:
+        key, value = body, None
+        operator = "exists"
+
+    if not key:
+        raise SystemExit(f"Invalid taint selector term: {text!r}")
+    return TaintRequirement(key=key, operator=operator, value=value, effect=effect)
+
+
+def parse_taint_selector(selector: str) -> list[TaintRequirement]:
+    if selector.strip() in {"", "*"}:
+        return []
+    return [
+        parse_taint_requirement(term)
+        for term in selector.split(",")
+        if term.strip()
+    ]
+
+
+def parse_remove_requirement(text: str) -> TaintRequirement:
+    requirement = parse_taint_requirement(text)
+    if requirement.operator not in {"exists", "eq"}:
+        raise SystemExit(
+            f"Remove taint selector {text!r} must be positive: "
+            "use key, key:Effect, key=value, or key=value:Effect."
+        )
+    return requirement
+
+
+def validate_add_taint(text: str) -> str:
+    body, effect = split_effect(text.strip())
+    if not effect:
+        raise SystemExit(
+            f"Add taint {text!r} must include an effect, for example key=value:NoSchedule."
+        )
+    if not body or body.startswith("!") or "!=" in body or "==" in body:
+        raise SystemExit(f"Invalid add taint: {text!r}")
+    key = body.split("=", 1)[0]
+    if not key:
+        raise SystemExit(f"Invalid add taint: {text!r}")
+    return text.strip()
+
+
+def parse_add_taint(text: str) -> dict[str, str | None]:
+    body, effect = split_effect(validate_add_taint(text))
+    key, equals, value = body.partition("=")
+    return {"key": key, "value": value if equals else None, "effect": effect}
+
+
+def taints(node: dict[str, Any]) -> list[dict[str, Any]]:
+    return (node.get("spec") or {}).get("taints", [])
+
+
+def metadata(node: dict[str, Any]) -> dict[str, Any]:
+    return node.get("metadata") or {}
+
+
+def node_name(node: dict[str, Any]) -> str:
+    return metadata(node).get("name", "")
+
+
+def is_ready(node: dict[str, Any]) -> bool:
+    for condition in (node.get("status") or {}).get("conditions", []):
+        if condition.get("type") == "Ready":
+            return condition.get("status") == "True"
+    return False
+
+
+def is_schedulable(node: dict[str, Any]) -> bool:
+    return not (node.get("spec") or {}).get("unschedulable", False)
+
+
+def taint_string(taint: dict[str, Any]) -> str:
+    key = taint.get("key", "")
+    value = taint.get("value")
+    effect = taint.get("effect", "")
+    if value is None:
+        return f"{key}:{effect}"
+    return f"{key}={value}:{effect}"
+
+
+def taint_summary(node: dict[str, Any]) -> str:
+    node_taints = taints(node)
+    if not node_taints:
+        return "-"
+    return ",".join(taint_string(taint) for taint in node_taints)
+
+
+def render_taint(value: str, use_color: bool) -> str:
+    key_value, separator, effect = value.rpartition(":")
+    if not separator:
+        return value
+    key, equals, taint_value = key_value.partition("=")
+    key_prefix, slash, key_name = key.partition("/")
+    style = "2;31" if effect.startswith("No") else "2"
+    rendered_key = (
+        colorize(key_prefix, "34", use_color)
+        + colorize(slash, "2", use_color)
+        + colorize(key_name, "36", use_color)
+        if slash
+        else colorize(key, "36", use_color)
+    )
+    rendered_value = ""
+    if equals:
+        rendered_value = colorize(equals, "2", use_color) + colorize(
+            taint_value,
+            "33",
+            use_color,
+        )
+    return (
+        rendered_key
+        + rendered_value
+        + colorize(separator, "2", use_color)
+        + colorize(effect, style, use_color)
+    )
+
+
+def render_taint_cell(value: str, use_color: bool) -> str:
+    return colorize("-", "2", use_color) if value == "-" else render_taint(value, use_color)
+
+
+def requirement_relevant_taints(
+    node_taints: list[dict[str, Any]], requirement: TaintRequirement
+) -> list[dict[str, Any]]:
+    result = []
+    for taint in node_taints:
+        if taint.get("key") != requirement.key:
+            continue
+        if requirement.effect and taint.get("effect") != requirement.effect:
+            continue
+        result.append(taint)
+    return result
+
+
+def node_matches_requirement(
+    node: dict[str, Any], requirement: TaintRequirement
+) -> bool:
+    relevant = requirement_relevant_taints(taints(node), requirement)
+
+    if requirement.operator == "exists":
+        return bool(relevant)
+    if requirement.operator == "notexists":
+        return not relevant
+    if requirement.operator == "eq":
+        return any(taint.get("value", "") == requirement.value for taint in relevant)
+    if requirement.operator == "neq":
+        return not any(taint.get("value", "") == requirement.value for taint in relevant)
+    raise SystemExit(f"Unknown taint selector operator: {requirement.operator}")
+
+
+def node_matches_selector(
+    node: dict[str, Any], requirements: list[TaintRequirement]
+) -> bool:
+    return all(node_matches_requirement(node, requirement) for requirement in requirements)
+
+
+def fetch_nodes(args: argparse.Namespace) -> list[dict[str, Any]]:
+    cmd = ["get", "nodes"]
+    if args.label_selector:
+        cmd.extend(["-l", args.label_selector])
+    return kubectl_json(args, *cmd).get("items", [])
+
+
+def select_nodes(args: argparse.Namespace) -> list[dict[str, Any]]:
+    requirements = parse_taint_selector(args.taint_selector)
+    nodes = fetch_nodes(args)
+    return [node for node in nodes if node_matches_selector(node, requirements)]
+
+
+def node_record(node: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "name": node_name(node),
+        "ready": is_ready(node),
+        "schedulable": is_schedulable(node),
+        "taints": [taint_string(taint) for taint in taints(node)],
+    }
+
+
+def taint_strings(node_taints: list[dict[str, Any]]) -> list[str]:
+    return [taint_string(taint) for taint in node_taints]
+
+
+def print_nodes(
+    nodes: list[dict[str, Any]], names_only: bool = False, color_mode: str = "auto"
+) -> None:
+    if names_only:
+        for node in nodes:
+            print(node_name(node))
+        return
+
+    use_color = should_color(color_mode)
+    headers = ["NODE", "READY", "SCHED", "TAINTS"]
+
+    def render_cell(value: str, header: str) -> str:
+        if header in {"READY", "SCHED"}:
+            return colorize(value, "32" if value == "yes" else "31", use_color)
+        if header == "TAINTS":
+            return render_taint_cell(value, use_color)
+        return value
+
+    rows = []
+    for node in nodes:
+        node_taints = taint_strings(taints(node)) or ["-"]
+        rows.append(
+            [
+                node_name(node),
+                "yes" if is_ready(node) else "no",
+                "yes" if is_schedulable(node) else "no",
+                node_taints,
+            ]
+        )
+    widths = [
+        max(
+            len(headers[index]),
+            *(
+                max(len(taint) for taint in row[index])
+                if index == 3
+                else len(row[index])
+                for row in rows
+            ),
+        )
+        if rows
+        else len(headers[index])
+        for index in range(len(headers))
+    ]
+    print(
+        "  ".join(
+            pad_rendered(
+                header,
+                colorize(header, "1", use_color),
+                widths[index],
+            )
+            for index, header in enumerate(headers)
+        )
+    )
+    print(colorize("  ".join("-" * width for width in widths), "2", use_color))
+    for row in rows:
+        for taint_index, taint in enumerate(row[3]):
+            values = row[:3] + [taint] if taint_index == 0 else ["", "", "", taint]
+            print(
+                "  ".join(
+                    pad_rendered(
+                        str(value),
+                        render_cell(str(value), headers[index]),
+                        widths[index],
+                    )
+                    for index, value in enumerate(values)
+                ).rstrip()
+            )
+
+
+def taint_identity(taint: dict[str, Any]) -> tuple[str, str | None]:
+    return taint.get("key", ""), taint.get("effect")
+
+
+def preview_add_taints(
+    node: dict[str, Any], add_taints: list[dict[str, str | None]], overwrite: bool
+) -> tuple[list[str], list[str], list[str]]:
+    before_taints = [dict(taint) for taint in taints(node)]
+    after_taints = [dict(taint) for taint in before_taints]
+    notes = []
+
+    for new_taint in add_taints:
+        existing = [
+            taint
+            for taint in after_taints
+            if taint_identity(taint) == taint_identity(new_taint)
+        ]
+        if existing and not overwrite:
+            key, effect = taint_identity(new_taint)
+            notes.append(f"{key}:{effect} already exists; --overwrite is required")
+            continue
+        if overwrite:
+            after_taints = [
+                taint
+                for taint in after_taints
+                if taint_identity(taint) != taint_identity(new_taint)
+            ]
+        after_taints.append({key: value for key, value in new_taint.items() if value is not None})
+
+    return taint_strings(before_taints), taint_strings(after_taints), notes
+
+
+def preview_remove_taints(
+    node: dict[str, Any], requirements: list[TaintRequirement]
+) -> tuple[list[str], list[str], list[str]]:
+    before_taints = [dict(taint) for taint in taints(node)]
+    after_taints = []
+    removed_any = False
+
+    for taint in before_taints:
+        remove = False
+        for requirement in requirements:
+            relevant = requirement_relevant_taints([taint], requirement)
+            if not relevant:
+                continue
+            if requirement.operator == "eq" and taint.get("value", "") != requirement.value:
+                continue
+            remove = True
+            break
+        if remove:
+            removed_any = True
+        else:
+            after_taints.append(taint)
+
+    notes = [] if removed_any else ["no matching taints to remove on this node"]
+    return taint_strings(before_taints), taint_strings(after_taints), notes
+
+
+def diff_taint_lines(values: list[str], other_values: list[str], mode: str) -> list[str]:
+    if not values:
+        return ["-"]
+    other = set(other_values)
+    lines = []
+    for value in values:
+        if mode == "before" and value not in other:
+            lines.append(f"- {value}")
+        elif mode == "after" and value not in other:
+            lines.append(f"+ {value}")
+        else:
+            lines.append(f"  {value}")
+    return lines
+
+
+def render_diff_taint_line(value: str, use_color: bool) -> str:
+    if value == "-":
+        return colorize("-", "2", use_color)
+    if len(value) >= 2 and value[:2] in {"+ ", "- ", "  "}:
+        prefix = value[:2]
+        body = value[2:]
+        prefix_style = {"+ ": "32", "- ": "31", "  ": "2"}[prefix]
+        return colorize(prefix, prefix_style, use_color) + render_taint_cell(
+            body,
+            use_color,
+        )
+    return render_taint_cell(value, use_color)
+
+
+def print_change_preview(
+    title: str,
+    changes: list[dict[str, Any]],
+    color_mode: str,
+) -> None:
+    use_color = should_color(color_mode)
+    print(colorize(title, "1", use_color))
+    headers = ["NODE", "BEFORE", "AFTER", "NOTES"]
+    records = []
+    for change in changes:
+        before = change["before"]
+        after = change["after"]
+        records.append(
+            [
+                [change["node"]],
+                diff_taint_lines(before, after, "before"),
+                diff_taint_lines(after, before, "after"),
+                change["notes"] or [""],
+            ]
+        )
+
+    widths = [
+        max(
+            len(headers[index]),
+            *(len(line) for record in records for line in record[index]),
+        )
+        if records
+        else len(headers[index])
+        for index in range(len(headers))
+    ]
+    print(
+        "  ".join(
+            pad_rendered(
+                header,
+                colorize(header, "1", use_color),
+                widths[index],
+            )
+            for index, header in enumerate(headers)
+        )
+    )
+    print(colorize("  ".join("-" * width for width in widths), "2", use_color))
+    for record in records:
+        height = max(len(cell) for cell in record)
+        for line_index in range(height):
+            values = [
+                cell[line_index] if line_index < len(cell) else ""
+                for cell in record
+            ]
+            rendered = []
+            for index, value in enumerate(values):
+                if headers[index] in {"BEFORE", "AFTER"}:
+                    rendered_value = render_diff_taint_line(value, use_color)
+                elif headers[index] == "NOTES" and value:
+                    rendered_value = colorize(value, "33", use_color)
+                else:
+                    rendered_value = value
+                rendered.append(pad_rendered(value, rendered_value, widths[index]))
+            print("  ".join(rendered).rstrip())
+
+
+def print_or_run(
+    args: argparse.Namespace,
+    command: list[str],
+    dry_run_prefix: str = "dry-run:",
+) -> None:
+    if args.apply:
+        print(f"running: {shlex.join(kubectl_base(args) + command)}")
+        run_kubectl(args, command)
+    else:
+        print(f"{dry_run_prefix} {shlex.join(kubectl_base(args) + command)}")
+
+
+def command_list(args: argparse.Namespace) -> int:
+    nodes = select_nodes(args)
+    if args.json:
+        print(json.dumps([node_record(node) for node in nodes], indent=2, sort_keys=True))
+    else:
+        print_nodes(nodes, args.names, args.color)
+    return 0
+
+
+def command_add(args: argparse.Namespace) -> int:
+    selected = select_nodes(args)
+    taint_args = [validate_add_taint(taint) for taint in args.taints]
+    add_taints = [parse_add_taint(taint) for taint in taint_args]
+    if not selected:
+        print("No nodes matched.")
+        return 0
+
+    node_names = [node_name(node) for node in selected]
+    changes = []
+    for node in selected:
+        before, after, notes = preview_add_taints(node, add_taints, args.overwrite)
+        changes.append(
+            {
+                "node": node_name(node),
+                "before": before,
+                "after": after,
+                "notes": notes,
+            }
+        )
+    command = ["taint", "nodes"] + node_names + taint_args
+    if args.overwrite:
+        command.append("--overwrite")
+
+    print_change_preview(
+        f"{'Applying' if args.apply else 'Dry-run'} add taint on {len(node_names)} node(s):",
+        changes,
+        args.color,
+    )
+    print_or_run(args, command)
+    if not args.apply:
+        print("Use --apply to execute.")
+    return 0
+
+
+def remove_args_for_node(
+    node: dict[str, Any], requirements: list[TaintRequirement]
+) -> list[str]:
+    result = []
+    seen = set()
+    for requirement in requirements:
+        for taint in requirement_relevant_taints(taints(node), requirement):
+            if requirement.operator == "eq" and taint.get("value", "") != requirement.value:
+                continue
+            key = taint.get("key", "")
+            effect = taint.get("effect", "")
+            if not key:
+                continue
+            remove_arg = f"{key}:{effect}-" if effect else f"{key}-"
+            if remove_arg not in seen:
+                result.append(remove_arg)
+                seen.add(remove_arg)
+    return result
+
+
+def command_remove(args: argparse.Namespace) -> int:
+    selected = select_nodes(args)
+    requirements = [parse_remove_requirement(taint) for taint in args.taints]
+    if not selected:
+        print("No nodes matched.")
+        return 0
+
+    any_command = False
+    changes = []
+    for node in selected:
+        before, after, notes = preview_remove_taints(node, requirements)
+        remove_args = remove_args_for_node(node, requirements)
+        if not remove_args:
+            changes.append(
+                {
+                    "node": node_name(node),
+                    "before": before,
+                    "after": after,
+                    "notes": notes,
+                }
+            )
+            continue
+        any_command = True
+        changes.append(
+            {
+                "node": node_name(node),
+                "before": before,
+                "after": after,
+                "notes": notes,
+            }
+        )
+
+    if changes:
+        print_change_preview(
+            f"{'Applying' if args.apply else 'Dry-run'} remove taint on "
+            f"{len(selected)} selected node(s):",
+            changes,
+            args.color,
+        )
+
+    for node in selected:
+        remove_args = remove_args_for_node(node, requirements)
+        if not remove_args:
+            continue
+        command = ["taint", "nodes", node_name(node)] + remove_args
+        print_or_run(args, command)
+
+    if not any_command:
+        print("Selected nodes did not have any matching taints to remove.")
+    elif not args.apply:
+        print("Use --apply to execute.")
+    return 0
+
+
+def main() -> int:
+    args = parse_args()
+    if args.command == "list":
+        return command_list(args)
+    if args.command == "add":
+        return command_add(args)
+    if args.command == "remove":
+        return command_remove(args)
+    raise SystemExit(f"Unknown command: {args.command}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
