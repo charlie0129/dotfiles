@@ -165,8 +165,6 @@ class Palette(object):
             return text
         if supported == []:
             return self.wrap(text, self.DIM)
-        if enabled == [] and supported:
-            return self.warning(text)
         if enabled:
             return self.wrap(text, self.BRIGHT_GREEN)
         return self.meta(text)
@@ -701,11 +699,11 @@ def format_link(info, palette):
 
     text = "link=" + cur_text
     if degraded and max_text:
-        text += " < " + max_text
+        text += "<" + max_text
 
     colored = "link=" + cur_colored
     if degraded and max_text:
-        colored += palette.muted(" < ") + max_colored
+        colored += palette.muted("<") + max_colored
         if not link_is_down:
             colored += " " + palette.warning("degraded")
     plain_suffix = " degraded" if degraded and not link_is_down else ""
