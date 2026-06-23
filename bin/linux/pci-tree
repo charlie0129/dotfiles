@@ -19,7 +19,12 @@ BDF_RE = re.compile(r"^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7]$")
 ROOT_RE = re.compile(r"^pci([0-9a-fA-F]{4}):([0-9a-fA-F]{2})$")
 HEX_ID_RE = re.compile(r"\s+\[[0-9a-fA-F:.]+\]$")
 SPEED_RE = re.compile(r"([0-9]+(?:\.[0-9]+)?)\s*GT/s", re.IGNORECASE)
+LSPCI_DEVICE_RE = re.compile(
+    r"^([0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-7])\s"
+)
+ASPM_RE = re.compile(r"\bASPM\s+([^,;]+)", re.IGNORECASE)
 VALID_LINK_WIDTHS = set([0, 1, 2, 4, 8, 12, 16, 32])
+ASPM_MODE_ORDER = ("L0s", "L1")
 DEVICE_NAME_COLORS = {
     "00": "#969696",  # unclassified
     "01": "#76BE7A",  # storage
@@ -155,6 +160,17 @@ class Palette(object):
             codes.insert(0, self.BOLD)
         return self.wrap(text, *codes)
 
+    def aspm(self, text, supported, enabled):
+        if not self.enabled:
+            return text
+        if supported == []:
+            return self.wrap(text, self.DIM)
+        if enabled == [] and supported:
+            return self.warning(text)
+        if enabled:
+            return self.wrap(text, self.BRIGHT_GREEN)
+        return self.meta(text)
+
 
 def parse_hex_color(value):
     value = value.strip()
@@ -236,6 +252,12 @@ def strip_lspci_id(value):
     return HEX_ID_RE.sub("", value).strip()
 
 
+def merge_records(records, extra_records):
+    for bdf, extra in extra_records.items():
+        record = records.setdefault(bdf, {"Slot": bdf})
+        record.update(extra)
+
+
 def parse_lspci_vmm(output):
     records = {}
     current = {}
@@ -278,12 +300,13 @@ def load_lspci_info(timeout=8):
     if not lspci:
         return {}, "lspci not found"
 
-    commands = [
+    records = {}
+    base_commands = [
         [lspci, "-D", "-vmmnn"],
         [lspci, "-Dmmnn"],
     ]
     last_error = None
-    for cmd in commands:
+    for cmd in base_commands:
         try:
             output = subprocess.check_output(
                 cmd,
@@ -292,11 +315,73 @@ def load_lspci_info(timeout=8):
                 timeout=timeout,
             )
             if "-vmmnn" in cmd:
-                return parse_lspci_vmm(output), None
-            return parse_lspci_mm(output), None
+                records = parse_lspci_vmm(output)
+                break
+            records = parse_lspci_mm(output)
+            break
         except Exception as exc:
             last_error = str(exc)
+
+    try:
+        output = subprocess.check_output(
+            [lspci, "-D", "-vv"],
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True,
+            timeout=timeout,
+        )
+        merge_records(records, parse_lspci_verbose(output))
+    except Exception as exc:
+        if not records:
+            last_error = str(exc)
+        elif last_error:
+            last_error = "%s; ASPM status unavailable: %s" % (last_error, exc)
+        else:
+            last_error = "ASPM status unavailable: %s" % exc
+
+    if records:
+        return records, last_error
     return {}, "lspci failed: %s" % last_error
+
+
+def parse_lspci_verbose(output):
+    records = {}
+    current_bdf = None
+
+    for line in output.splitlines():
+        match = LSPCI_DEVICE_RE.match(line)
+        if match:
+            current_bdf = match.group(1)
+            records.setdefault(current_bdf, {"Slot": current_bdf})
+            continue
+        if current_bdf is None:
+            continue
+
+        stripped = line.strip()
+        if stripped.startswith("LnkCap:"):
+            records[current_bdf]["ASPM Supported"] = parse_aspm_modes(stripped)
+        elif stripped.startswith("LnkCtl:"):
+            records[current_bdf]["ASPM Enabled"] = parse_aspm_modes(stripped)
+
+    return records
+
+
+def parse_aspm_modes(line):
+    match = ASPM_RE.search(line)
+    if not match:
+        return None
+
+    value = match.group(1).strip()
+    lower_value = value.lower()
+    if "not supported" in lower_value or "disabled" in lower_value:
+        return []
+
+    modes = []
+    for mode in ASPM_MODE_ORDER:
+        if re.search(r"\b%s\b" % re.escape(mode), value, re.IGNORECASE):
+            modes.append(mode)
+    if not modes:
+        return None
+    return modes
 
 
 def parse_lspci_mm(output):
@@ -627,6 +712,33 @@ def format_link(info, palette):
     return colored if palette.enabled else text + plain_suffix
 
 
+def format_aspm_modes(modes):
+    if modes is None:
+        return "?"
+    if not modes:
+        return "off"
+    ordered_modes = [mode for mode in ASPM_MODE_ORDER if mode in modes]
+    extra_modes = [mode for mode in modes if mode not in ASPM_MODE_ORDER]
+    return "+".join(ordered_modes + extra_modes)
+
+
+def format_aspm(info, palette):
+    lspci = info.get("lspci") or {}
+    supported = lspci.get("ASPM Supported")
+    enabled = lspci.get("ASPM Enabled")
+    if supported is None and enabled is None:
+        return None
+
+    if supported == []:
+        text = "aspm=unsupported"
+    else:
+        text = "aspm=%s" % format_aspm_modes(enabled)
+        if supported is not None and supported != enabled:
+            text += "/cap:%s" % format_aspm_modes(supported)
+
+    return palette.aspm(text, supported, enabled)
+
+
 def device_display_name(info):
     lspci = info.get("lspci") or {}
     vendor_name = strip_lspci_id(lspci.get("Vendor"))
@@ -654,6 +766,10 @@ def format_device(info, palette, verbose=False):
     link = format_link(info, palette)
     if link:
         parts.append(link)
+
+    aspm = format_aspm(info, palette)
+    if aspm:
+        parts.append(aspm)
 
     vendor_id = info.get("vendor_id") or "????"
     device_id = info.get("device_id") or "????"
@@ -871,7 +987,7 @@ def parse_args(argv):
     parser.add_argument(
         "--no-lspci",
         action="store_true",
-        help="do not call lspci for human-readable names",
+        help="do not call lspci for human-readable names or ASPM status",
     )
     parser.add_argument(
         "--lspci-timeout",
