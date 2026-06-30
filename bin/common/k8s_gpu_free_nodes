@@ -75,6 +75,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "-l",
+        "--label-selector",
+        "--node-label",
+        help=(
+            "Kubernetes node label selector to choose which nodes to check, "
+            "for example accelerator=nvidia."
+        ),
+    )
+    parser.add_argument(
         "--pods",
         action="store_true",
         help="Show GPU-consuming pods under each node.",
@@ -223,7 +232,11 @@ def has_blocking_taint(node: dict) -> bool:
 
 def build_report(args: argparse.Namespace) -> list[dict]:
     resources = args.resource or [DEFAULT_RESOURCE]
-    nodes = kubectl_json(args, "get", "nodes").get("items", [])
+    node_args = ["get", "nodes"]
+    if args.label_selector:
+        node_args.extend(["-l", args.label_selector])
+
+    nodes = kubectl_json(args, *node_args).get("items", [])
     pods = kubectl_json(args, "get", "pods", "--all-namespaces").get("items", [])
 
     used: dict[str, dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
