@@ -28,7 +28,7 @@ echo -e "==> Run $bold_cyan./import.sh$reset to import them into your system."
 echo
 echo "There are some System Profiles you need to import too."
 echo -e "==> 1. Run ${bold_cyan}open ../mobileconfigs${reset} to open the directory containing profiles."
-echo -e "==> 2. Then ${bold}double-click on all of the profiles${reset} to install them. Click OK to any prompts that appear."
+echo -e "==> 2. Then ${bold}double-click on the profiles${reset} to install them. ${bold}Do this ONE BY ONE.${reset} Complete step 3 before opening another profile. Click OK to any prompts that appear."
 echo -n "==> 3. Finally, go to "; printpath "System Settings" "Genreal" "Device Management" "Downloaded" "Double-click on the profiles that have a warning sign below" "Install... (lower left corner)"; echo
 
 echo
