@@ -1,127 +1,384 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-# Just for compatibility with python 3.7 that comes with macOS catalina
-from typing import List
+"""Generate phone-friendly random passwords."""
+
+import argparse
+import math
+import secrets
+import string
+import sys
+from typing import List, NamedTuple, Sequence, Tuple
 
 
-def is_num_or_char(b):
-    """
-    Check if the given byte represents a numeric or alphabetic character.
-    Excluding Oo0l1I to avoid confusion.
-    """
-    return (ord('a') <= int(b) <= ord('z') \
-        or ord('A') <= int(b) <= ord('Z') \
-        or ord('0') <= int(b) <= ord('9')) and \
-        int(b) not in [ord('O'), ord('o'), ord('0'), ord('l'), ord('1'), ord('I')]
+AMBIGUOUS_CHARS = frozenset("iIlL1oO0")
+LOWER_LETTERS = "".join(
+    c for c in string.ascii_lowercase if c not in AMBIGUOUS_CHARS
+)
+UPPER_LETTERS = "".join(
+    c for c in string.ascii_uppercase if c not in AMBIGUOUS_CHARS
+)
+DIGITS = "".join(c for c in string.digits if c not in AMBIGUOUS_CHARS)
+SYMBOLS = "!#$%&*+.:=?@_~"
+DEFAULT_SEPARATOR = "-"
 
 
-def is_printable_char(b):
-    return 33 <= int(b) <= 126
+class Segment(NamedTuple):
+    alphabet: str
+    length: int
 
 
-def is_complexity_requirements_met(str):
-    return any([c.islower() for c in str]) \
-        and any([c.isupper() for c in str]) \
-        and any([c.isdigit() for c in str])
+def positive_int(value: str) -> int:
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError(
+            "%s is an invalid positive int value" % value
+        )
+    return number
 
 
-def generate(n: int = 1,
-             segments: int = 2,
-             segment_length: int = 5,
-             separator: str = "-",
-             full_length: int = 0,
-             all_printable_char: bool = False) -> List[str]:
-
-    def is_kept(b):
-        if all_printable_char:
-            return is_printable_char(b) and \
-                (segments == 1 or int(b) != ord(separator[0]))
-        else:
-            return is_num_or_char(b)
-
-    generated_strings = []
-
-    if full_length > 0:
-        segments = full_length // segment_length + 1
-    else:
-        full_length = segments * segment_length + \
-            (segments-1)*len(separator)
-
-    for _ in range(n):
-        while True:
-            final_string = ''
-            for i in range(segments):
-                for _ in range(segment_length):
-                    while True:
-                        b = os.urandom(1)[0]
-                        if is_kept(b):
-                            final_string += chr(b)
-                            break
-                final_string += (separator if i !=
-                                 segments - 1 else '')
-            if is_complexity_requirements_met(final_string):
-                generated_strings.append(final_string[:full_length])
-                break
-
-    return generated_strings
+def non_negative_int(value: str) -> int:
+    number = int(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError(
+            "%s is an invalid non-negative int value" % value
+        )
+    return number
 
 
-if __name__ == '__main__':
-    import argparse
+def separator_chars(value: str) -> Tuple[str, ...]:
+    if not value:
+        raise argparse.ArgumentTypeError("separator cannot be empty")
 
-    def check_positive(value):
-        ival = int(value)
-        if ival <= 0:
+    separators = tuple(value)
+    for separator in separators:
+        if separator in AMBIGUOUS_CHARS:
             raise argparse.ArgumentTypeError(
-                "%s is an invalid positive int value" % value)
-        return ival
+                "separator %r is visually ambiguous" % separator
+            )
+        if separator.isspace() or not separator.isprintable():
+            raise argparse.ArgumentTypeError(
+                "separator %r must be printable and non-whitespace" % separator
+            )
+        if separator.isalnum():
+            raise argparse.ArgumentTypeError(
+                "separator %r must be punctuation, not a letter or digit"
+                % separator
+            )
 
-    parser = argparse.ArgumentParser()
-    parser.description = "gen-pswd generates random strings, often used as a password generator. Each generated string consists of two parts: several segments and a separator, e.g. `MnlT8-GnidL'."
-    parser.add_argument("-n",
-                        "--number",
-                        nargs="?",
-                        type=check_positive,
-                        default=1,
-                        help="number of passwords to generate (default 1)")
-    parser.add_argument("-s",
-                        "--segments",
-                        nargs="?",
-                        type=check_positive,
-                        default=2,
-                        help="number of segments in the password (default 2)")
-    parser.add_argument("-l",
-                        "--segment-length",
-                        nargs="?",
-                        type=check_positive,
-                        default=5,
-                        help="length of each segment (default 5)")
-    parser.add_argument("-L",
-                        "--full-length",
-                        nargs="?",
-                        type=int,
-                        default=0,
-                        help="length of the entire generated string. If this option is set, the `--segments' option will be ignored. Enough number of segments will be generated and then the whole string will be truncated to satisfy this requirement.")
-    parser.add_argument("-p",
-                        "--separator",
-                        nargs="?",
-                        default="-",
-                        help="segment separator (default '-')")
-    parser.add_argument("-a",
-                        "--all-printable-characters",
-                        dest="all_printable_char",
-                        default=False,
-                        action="store_true",
-                        help="use all printable characters (by default we only use upper and lower case letters, numbers, and hyphens)")
+    return separators
+
+
+def build_segments(
+    letter_segments: int,
+    letter_length: int,
+    digit_length: int,
+    symbol_length: int,
+    strict: bool,
+) -> List[Segment]:
+    """Build homogeneous groups to avoid frequent phone keyboard switching."""
+    if strict:
+        letter_segments = max(2, letter_segments)
+
+    segments = []
+    for index in range(letter_segments):
+        alphabet = (
+            UPPER_LETTERS
+            if strict and index == letter_segments - 1
+            else LOWER_LETTERS
+        )
+        segments.append(Segment(alphabet, letter_length))
+
+    if symbol_length:
+        segments.append(Segment(SYMBOLS, symbol_length))
+
+    if digit_length:
+        segments.append(Segment(DIGITS, digit_length))
+
+    return segments
+
+
+def minimum_full_length(
+    digit_length: int,
+    symbol_length: int,
+    strict: bool,
+) -> int:
+    groups = 1
+    if strict:
+        groups += 1
+    if symbol_length:
+        groups += 1
+    if digit_length:
+        groups += 1
+
+    return groups * 2 - 1
+
+
+def expand_for_full_length(
+    full_length: int,
+    letter_segments: int,
+    letter_length: int,
+    digit_length: int,
+    symbol_length: int,
+    strict: bool,
+) -> List[Segment]:
+    """Create enough groups to reach the requested display length."""
+    if full_length <= 0:
+        return build_segments(
+            letter_segments, letter_length, digit_length, symbol_length, strict
+        )
+
+    min_length = minimum_full_length(digit_length, symbol_length, strict)
+    if full_length < min_length:
+        raise ValueError(
+            "full_length must be at least %d for the selected groups"
+            % min_length
+        )
+
+    letter_segments = max(letter_segments, 2 if strict else 1)
+    while True:
+        segments = build_segments(
+            letter_segments, letter_length, digit_length, symbol_length, strict
+        )
+        candidate_length = (
+            sum(segment.length for segment in segments) + len(segments) - 1
+        )
+        if candidate_length >= full_length:
+            return resize_segments(segments, full_length)
+        letter_segments += 1
+
+
+def resize_segments(segments: Sequence[Segment], full_length: int) -> List[Segment]:
+    """Resize groups so separators are kept and the final length is exact."""
+    segments = list(segments)
+
+    while len(segments) > 1 and full_length - (len(segments) - 1) < len(segments):
+        segments.pop(0)
+
+    if full_length < len(segments) * 2 - 1:
+        return [Segment(segments[0].alphabet, full_length)]
+
+    char_budget = full_length - (len(segments) - 1)
+    lengths = [1] * len(segments)
+    remaining = char_budget - len(segments)
+
+    for index, segment in enumerate(segments):
+        extra = min(segment.length - 1, remaining)
+        lengths[index] += extra
+        remaining -= extra
+
+    if remaining:
+        lengths[0] += remaining
+
+    return [
+        Segment(segment.alphabet, length)
+        for segment, length in zip(segments, lengths)
+    ]
+
+
+def random_text(alphabet: str, length: int) -> str:
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def join_segments(parts: Sequence[str], separators: Sequence[str]) -> str:
+    output = []
+    for index, part in enumerate(parts):
+        if index:
+            output.append(separators[(index - 1) % len(separators)])
+        output.append(part)
+    return "".join(output)
+
+
+def entropy_bits(segments: Sequence[Segment]) -> float:
+    return sum(
+        segment.length * math.log(len(segment.alphabet), 2)
+        for segment in segments
+    )
+
+
+def generate(
+    n: int = 1,
+    segments: int = 2,
+    segment_length: int = 5,
+    separator: str = DEFAULT_SEPARATOR,
+    full_length: int = 0,
+    all_printable_char: bool = False,
+    *,
+    digits: int = 4,
+    symbols: int = 0,
+    strict: bool = True,
+) -> List[str]:
+    if n <= 0:
+        raise ValueError("n must be positive")
+    if segments <= 0:
+        raise ValueError("segments must be positive")
+    if segment_length <= 0:
+        raise ValueError("segment_length must be positive")
+    if full_length < 0:
+        raise ValueError("full_length cannot be negative")
+    if digits < 0:
+        raise ValueError("digits cannot be negative")
+    if symbols < 0:
+        raise ValueError("symbols cannot be negative")
+
+    separators = separator_chars(separator)
+    symbol_length = symbols or (2 if all_printable_char else 0)
+    segment_plan = expand_for_full_length(
+        full_length,
+        segments,
+        segment_length,
+        digits,
+        symbol_length,
+        strict,
+    )
+
+    passwords = []
+    for _ in range(n):
+        parts = [
+            random_text(segment.alphabet, segment.length)
+            for segment in segment_plan
+        ]
+        passwords.append(join_segments(parts, separators))
+
+    return passwords
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Generate phone-friendly passwords. Lowercase letters, uppercase "
+            "letters, symbols, and digits are kept in separate groups, and "
+            "ambiguous characters such as i, L, 1, o, O, and 0 are never "
+            "emitted."
+        )
+    )
+    parser.add_argument(
+        "-n",
+        "--number",
+        nargs="?",
+        type=positive_int,
+        default=1,
+        help="number of passwords to generate (default 1)",
+    )
+    parser.add_argument(
+        "-s",
+        "--segments",
+        nargs="?",
+        type=positive_int,
+        default=2,
+        help=(
+            "number of letter segments; by default the final one is uppercase "
+            "(default 2)"
+        ),
+    )
+    parser.add_argument(
+        "-l",
+        "--segment-length",
+        nargs="?",
+        type=positive_int,
+        default=5,
+        help="length of each letter segment (default 5)",
+    )
+    parser.add_argument(
+        "-L",
+        "--full-length",
+        nargs="?",
+        type=non_negative_int,
+        default=0,
+        help=(
+            "exact length of the generated password including separators; "
+            "0 keeps the natural grouped length (default 0)"
+        ),
+    )
+    parser.add_argument(
+        "-p",
+        "--separator",
+        nargs="?",
+        type=separator_chars,
+        default=DEFAULT_SEPARATOR,
+        help=(
+            "punctuation separator characters to alternate between, "
+            "for example --separator=-._ (default '-')"
+        ),
+    )
+    parser.add_argument(
+        "-d",
+        "--digits",
+        nargs="?",
+        type=non_negative_int,
+        default=4,
+        help="length of the final digit segment; 0 disables it (default 4)",
+    )
+    parser.add_argument(
+        "--symbols",
+        nargs="?",
+        type=non_negative_int,
+        default=0,
+        help="length of an optional safe-symbol segment (default 0)",
+    )
+    parser.set_defaults(strict=True)
+    parser.add_argument(
+        "--lowercase-only",
+        dest="strict",
+        action="store_false",
+        help="use lowercase letter segments only",
+    )
+    parser.add_argument(
+        "--show-entropy",
+        default=False,
+        action="store_true",
+        help="print estimated entropy to stderr",
+    )
+    parser.add_argument(
+        "-a",
+        "--all-printable-characters",
+        dest="all_printable_char",
+        default=False,
+        action="store_true",
+        help=(
+            "compatibility alias that adds a 2-character safe-symbol segment; "
+            "ambiguous characters are still excluded"
+        ),
+    )
+
     args = parser.parse_args()
+    args.separator = "".join(args.separator)
 
-    for s in generate(
-            args.number,
-            args.segments,
-            args.segment_length,
-            args.separator,
-            args.full_length,
-            args.all_printable_char):
-        print(s)
+    symbol_length = args.symbols or (2 if args.all_printable_char else 0)
+    min_length = minimum_full_length(args.digits, symbol_length, args.strict)
+    if 0 < args.full_length < min_length:
+        parser.error(
+            "--full-length must be at least %d for the selected groups"
+            % min_length
+        )
+
+    return args
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    symbol_length = args.symbols or (2 if args.all_printable_char else 0)
+    plan = expand_for_full_length(
+        args.full_length,
+        args.segments,
+        args.segment_length,
+        args.digits,
+        symbol_length,
+        args.strict,
+    )
+
+    if args.show_entropy:
+        print("estimated entropy: %.1f bits" % entropy_bits(plan), file=sys.stderr)
+
+    for password in generate(
+        args.number,
+        args.segments,
+        args.segment_length,
+        args.separator,
+        args.full_length,
+        args.all_printable_char,
+        digits=args.digits,
+        symbols=args.symbols,
+        strict=args.strict,
+    ):
+        print(password)
