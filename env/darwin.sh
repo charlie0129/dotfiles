@@ -8,6 +8,9 @@ PATH_BEFORE=(
     $HOME/bin
     # bin in this repo
     $DOTFILES_ROOT/bin/darwin
+    # MacPorts
+    /opt/local/bin
+    /opt/local/sbin
     # Homebrew x86_64.
     /usr/local/bin
     /usr/local/sbin
