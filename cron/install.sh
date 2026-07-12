@@ -9,18 +9,20 @@ OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
 CRONFILE="$OS/root.conf"
 
+CRONCONTENT="$(cat $CRONFILE | sed "s|\$DOTFILES_ROOT|$DOTFILES_ROOT|g")"
+
 # Install *root* crontab for darwin/linux
 if [ -f "$CRONFILE" ] && [ "$OS" = "darwin" ] || [ "$OS" = "linux" ]; then
     echo "========== CRONTAB START =========="
-    cat "$CRONFILE"
+    echo "$CRONCONTENT"
     echo "========== CRONTAB END =========="
 
     if [ "$EUID" -ne 0 ]; then
         confirm "The above crontab will be installed for root, continue" &&
-            sudo crontab "$CRONFILE"
+            echo "$CRONCONTENT" | sudo crontab -
     else
         confirm "The above crontab will be installed for root, continue" &&
-            crontab "$CRONFILE"
+            echo "$CRONCONTENT" | crontab -
     fi
 fi
 
