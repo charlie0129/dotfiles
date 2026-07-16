@@ -728,11 +728,11 @@ def format_aspm(info, palette):
         return None
 
     if supported == []:
-        text = "aspm=unsupported"
-    else:
-        text = "aspm=%s" % format_aspm_modes(enabled)
-        if supported is not None and supported != enabled:
-            text += "/cap:%s" % format_aspm_modes(supported)
+        return None
+
+    text = "aspm=%s" % format_aspm_modes(enabled)
+    if supported is not None and supported != enabled:
+        text += "/cap:%s" % format_aspm_modes(supported)
 
     return palette.aspm(text, supported, enabled)
 
