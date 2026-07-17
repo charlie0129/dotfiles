@@ -38,7 +38,8 @@ set softtabstop=4
 set backspace=indent,eol,start
 set hidden
 set mouse=a
-set clipboard=unnamed
+" Keep yanks and deletes in Vim's registers; use "+y / "+p for the system clipboard.
+set clipboard=
 set completeopt=menuone,noinsert,noselect
 
 " Files
