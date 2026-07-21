@@ -22,6 +22,7 @@ from decimal import Decimal, InvalidOperation
 
 TERMINAL_PHASES = {"Succeeded", "Failed"}
 DEFAULT_RESOURCE = "nvidia.com/gpu"
+NODE_BLOCK_TOPOLOGY_LABEL = "platform.glm.ai/node-block-topology"
 
 
 def should_color(mode: str) -> bool:
@@ -273,6 +274,10 @@ def build_report(args: argparse.Namespace) -> list[dict]:
         allocatable = status.get("allocatable") or {}
         capacity = status.get("capacity") or {}
         node_name = metadata.get("name", "")
+        node_block_topology = (metadata.get("labels") or {}).get(
+            NODE_BLOCK_TOPOLOGY_LABEL,
+            "<none>",
+        )
 
         for resource in resources:
             alloc = quantity(allocatable.get(resource))
@@ -293,6 +298,7 @@ def build_report(args: argparse.Namespace) -> list[dict]:
             rows.append(
                 {
                     "node": node_name,
+                    "node_block_topology": node_block_topology,
                     "resource": resource,
                     "capacity": fmt_decimal(cap),
                     "allocatable": fmt_decimal(alloc),
@@ -319,17 +325,24 @@ def build_report(args: argparse.Namespace) -> list[dict]:
 
 def print_table(rows: list[dict], show_pods: bool, color_mode: str) -> None:
     use_color = should_color(color_mode)
-    headers = [
-        "NODE",
-        "RESOURCE",
-        "ALLOC",
-        "USED",
-        "FREE",
-        "USABLE",
-        "READY",
-        "SCHED",
-        "TAINTS",
-    ]
+    show_node_block_topology = any(
+        row["node_block_topology"] != "<none>" for row in rows
+    )
+    headers = ["NODE"]
+    if show_node_block_topology:
+        headers.append("NODE_BLOCK_TOPOLOGY")
+    headers.extend(
+        [
+            "RESOURCE",
+            "ALLOC",
+            "USED",
+            "FREE",
+            "USABLE",
+            "READY",
+            "SCHED",
+            "TAINTS",
+        ]
+    )
 
     def taint_lines(value: str) -> list[str]:
         if not value or value == "-":
@@ -378,6 +391,7 @@ def print_table(rows: list[dict], show_pods: bool, color_mode: str) -> None:
     data = [
         [
             [row["node"]],
+            *([[row["node_block_topology"]]] if show_node_block_topology else []),
             [row["resource"]],
             [row["allocatable"]],
             [row["used"]],
