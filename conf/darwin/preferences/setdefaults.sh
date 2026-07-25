@@ -240,6 +240,12 @@ sudo defaults write /Library/Preferences/com.apple.loginwindow showInputMenu -bo
 # Stop iTunes from responding to the keyboard media keys
 #launchctl unload -w /System/Library/LaunchAgents/com.apple.rcd.plist 2> /dev/null
 
+# I don't want navigate back and forward with two-finger swipe on the trackpad. It is too easy to trigger it by accident.
+# When you are writing a spreadsheet or something, you want to use two-finger swipe to scroll, 
+# but accedentally swiping too far will trigger a back or forward navigation, erasing your work, which is very annoying.
+defaults write NSGlobalDomain AppleEnableSwipeNavigateWithScrolls -bool false
+
+
 ###############################################################################
 # Energy saving                                                               #
 ###############################################################################
