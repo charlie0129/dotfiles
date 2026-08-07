@@ -48,7 +48,8 @@ sudo nvram AutoBoot="%00"
 
 # Enable verbose booting, disable darkwake, keep symbols on crash, enable arm64e abi. SIP must be disabled before running this." &&
 if [[ "$(csrutil status)" =~ "disabled" ]]; then
-    sudo nvram boot-args="-v darkwake=0 keepsyms=1 -arm64e_preview_abi"
+    # amfi_get_out_of_my_way=0x1 breaks dexts (e.g., karabiner elements) so amfi_allow_any_signature is used instead
+    sudo nvram boot-args="-v darkwake=0 keepsyms=1 -arm64e_preview_abi amfi_allow_any_signature=1"
 else
     echo "==> SIP is enabled. Skipping boot args configuration."
 fi
