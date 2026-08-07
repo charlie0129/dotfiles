@@ -21,6 +21,11 @@ PATH_BEFORE=(
     $HOME/.orbstack/bin
 )
 
+# (N) in zsh means: only match existing paths, and expand to nothing if there is no match.
+for python_bin in $HOME/Library/Python/3*/bin(N); do
+    PATH_BEFORE+=("$python_bin")
+done
+
 # This list is appended after PATH
 PATH_AFTER=(
     # `code` for Visual Studio Code
