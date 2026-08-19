@@ -144,6 +144,12 @@ git_clone() {
     mkdir -p "$clone_parent" || return 1
     cd "$clone_parent" || return 1
 
+    if [[ -d "$clone_target" && -n "$(command ls -A -- "$clone_target" 2>/dev/null)" ]]; then
+        echo "Destination already exists, changing directory to $clone_target" >&2
+        cd "$clone_target" || return 1
+        return 0
+    fi
+
     # Example: $HOME/src/github.com/charlie0129/dotfiles
     git clone "${clone_args[@]}"
     local clone_status=$?
