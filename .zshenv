@@ -33,7 +33,7 @@ if [ ! -e "$Z4H"/z4h.zsh ]; then
   echo "We need to download some files from the internet."
   if [ ! -t 0 ] && [ -z "${Z4H_BOOTSTRAPPING-}" ]; then
     >&2 printf '\033[33mz4h\033[0m: stdin is not a terminal and Z4H_BOOTSTRAPPING is not set.\n'
-    >&2 printf 'You may want to install z4h non-interactively (e.g. in a Dockerfile): Z4H_BOOTSTRAPPING=1 zsh -c :\n'
+    >&2 printf 'You may want to install z4h non-interactively (e.g. in a Dockerfile): %s\n' "Z4H_BOOTSTRAPPING=1 zsh -c '[[ -r \$Z4H/zsh4humans/main.zsh ]]'"
     >&2 printf 'Need a proxy to reach GitHub? export http_proxy/https_proxy first.\n'
   elif [ -z "${Z4H_BOOTSTRAPPING-}" ] && read -q "choice?Do you need to use a proxy? This is useful if your current network cannot access GitHub. [y/n]: "; then
       echo
