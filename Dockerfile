@@ -20,8 +20,8 @@ RUN apt-get install -y --no-install-recommends \
 
 RUN chsh -s /bin/zsh
 
-COPY . /root/dotfiles
+COPY . /root/.dotfiles
 
-WORKDIR /root
+WORKDIR /root/.dotfiles
 
 RUN ./bootstrap.sh -f

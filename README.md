@@ -11,7 +11,7 @@ You can use Docker to try out these dotfiles in a container without installing t
 
 ```bash
 # We need our dotfiles to build the container
-git clone --recurse-submodules --shallow-submodules https://github.com/charlie0129/dotfiles
+git clone --recurse-submodules --shallow-submodules https://github.com/charlie0129/dotfiles.git
 cd dotfiles
 # Build the container. Just install some packages, bootstap dotfiles, and that's it.
 docker build -t dotfiles .
@@ -23,9 +23,9 @@ docker run -it --rm dotfiles /bin/zsh
 
 ```bash
 # Clone this repo with submodules to anywhere you want.
-# `~/dotfiles` is recommended, which is used in this example.
-git clone --recurse-submodules --shallow-submodules https://github.com/charlie0129/dotfiles ~/dotfiles
-cd ~/dotfiles
+# `~/.dotfiles` is recommended, which is used in this example.
+git clone --recurse-submodules --shallow-submodules https://github.com/charlie0129/dotfiles.git ~/.dotfiles
+cd ~/.dotfiles
 # Install the dotfiles. Remember to keep an eye on the output for conflicts.
 # If necessary, add a -f option to *overwrite* any existing configuration.
 ./bootstrap.sh -f
