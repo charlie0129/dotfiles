@@ -32,7 +32,7 @@ if [ ! -e "$Z4H"/z4h.zsh ]; then
   mkdir -p -- "$Z4H" || return
   >&2 printf '\033[33mz4h\033[0m: fetching \033[4mz4h.zsh\033[0m\n'
   echo "We need to download some files from the internet."
-  if read -q "choice?Do you need to use a proxy? This is useful if your current network cannot access GitHub. [y/n]: "; then
+  if [ -t 0 ] && read -q "choice?Do you need to use a proxy? This is useful if your current network cannot access GitHub. [y/n]: "; then
       echo
       echo "Just fill some plain old proxy-related environment variables. Leave empty to skip."
       read "http_proxy?- http_proxy="
