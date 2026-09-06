@@ -20,7 +20,6 @@ if [ -n "${ZSH_VERSION-}" ]; then
   setopt no_global_rcs
   [[ -o no_interactive && -z "${Z4H_BOOTSTRAPPING-}" ]] && return
   setopt no_rcs
-  unset Z4H_BOOTSTRAPPING
 fi
 
 Z4H_URL="https://raw.githubusercontent.com/romkatv/zsh4humans/v5"
@@ -32,7 +31,11 @@ if [ ! -e "$Z4H"/z4h.zsh ]; then
   mkdir -p -- "$Z4H" || return
   >&2 printf '\033[33mz4h\033[0m: fetching \033[4mz4h.zsh\033[0m\n'
   echo "We need to download some files from the internet."
-  if [ -t 0 ] && read -q "choice?Do you need to use a proxy? This is useful if your current network cannot access GitHub. [y/n]: "; then
+  if [ ! -t 0 ] && [ -z "${Z4H_BOOTSTRAPPING-}" ]; then
+    >&2 printf '\033[33mz4h\033[0m: stdin is not a terminal and Z4H_BOOTSTRAPPING is not set.\n'
+    >&2 printf 'You may want to install z4h non-interactively (e.g. in a Dockerfile): Z4H_BOOTSTRAPPING=1 zsh -c :\n'
+    >&2 printf 'Need a proxy to reach GitHub? export http_proxy/https_proxy first.\n'
+  elif [ -z "${Z4H_BOOTSTRAPPING-}" ] && read -q "choice?Do you need to use a proxy? This is useful if your current network cannot access GitHub. [y/n]: "; then
       echo
       echo "Just fill some plain old proxy-related environment variables. Leave empty to skip."
       read "http_proxy?- http_proxy="
@@ -55,6 +58,8 @@ if [ ! -e "$Z4H"/z4h.zsh ]; then
   fi
   mv -- "$Z4H"/z4h.zsh.$$ "$Z4H"/z4h.zsh || return
 fi
+
+unset Z4H_BOOTSTRAPPING
 
 . "$Z4H"/z4h.zsh || return
 
