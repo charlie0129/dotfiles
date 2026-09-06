@@ -25,3 +25,12 @@ COPY . /root/.dotfiles
 WORKDIR /root/.dotfiles
 
 RUN ./bootstrap.sh -f
+
+# Install z4h and all its plugins non-interactively, so the first shell in the
+# container starts fully configured. On success z4h exec's an interactive zsh
+# to warm everything up -- the gitstatus/p10k warnings in the build log are
+# expected (no tty during build) and harmless. The check at the end fails the
+# build loudly if the download failed. If GitHub is unreachable, pass a proxy:
+#   docker build --build-arg HTTP_PROXY=http://host:port --build-arg HTTPS_PROXY=http://host:port .
+# (Docker's predefined proxy build args reach curl without persisting in the image.)
+RUN Z4H_BOOTSTRAPPING=1 zsh -c '[[ -r $Z4H/zsh4humans/main.zsh ]] || { printf "z4h bootstrap failed\n" >&2; exit 1; }'
