@@ -6,7 +6,7 @@
 # This list is inserted before PATH
 PATH_BEFORE=(
     # custom bin in this repo, i.e. bin/custom
-    $HOME/dotfiles/bin/custom
+    "$DOTFILES_ROOT/bin/custom"
 )
 
 # This list is appended after PATH
