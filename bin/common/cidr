@@ -1,0 +1,475 @@
+#!/usr/bin/env python3
+"""Inspect and manipulate IPv4/IPv6 networks using the standard library."""
+
+import argparse
+import ipaddress
+import itertools
+import json
+import os
+import sys
+from typing import (
+    Iterable, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union,
+)
+
+
+IPAddress = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+IPNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
+IPInterface = Union[ipaddress.IPv4Interface, ipaddress.IPv6Interface]
+ResultData = Union[Mapping[str, object], Sequence[Mapping[str, object]]]
+CommandResult = Tuple[ResultData, List[str], int]
+
+
+class NetworkInfo(TypedDict):
+    input: str
+    ip: str
+    version: int
+    network: str
+    prefix_length: int
+    netmask: str
+    wildcard_mask: Optional[str]
+    broadcast: Optional[str]
+    first_address: str
+    last_address: str
+    address_count: int
+    first_host: str
+    last_host: str
+    host_count: int
+    previous_network: Optional[str]
+    next_network: Optional[str]
+
+
+class NearbyNetwork(TypedDict):
+    network: str
+    offset: int
+    current: bool
+    first_address: str
+    last_address: str
+
+
+class NetworkCheck(TypedDict):
+    network: str
+    candidate: str
+    result: bool
+    relationship: str
+
+
+DEFAULT_LIMIT = 256
+COMMANDS = (
+    "inspect", "nearby", "contains", "overlaps", "split", "collapse",
+    "range", "exclude", "hosts",
+)
+
+
+def positive_int(value: str) -> int:
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return number
+
+
+def nonnegative_int(value: str) -> int:
+    number = int(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("must be a nonnegative integer")
+    return number
+
+
+def interface(value: str) -> IPInterface:
+    if "%" in value:
+        raise ValueError("IPv6 zone IDs are not supported; omit the %interface suffix")
+    try:
+        return ipaddress.ip_interface(value)
+    except ValueError:
+        raise ValueError("invalid IP/CIDR: {!r}".format(value)) from None
+
+
+def network(value: str) -> IPNetwork:
+    return interface(value).network
+
+
+def address(value: str) -> IPAddress:
+    if "/" in value:
+        raise ValueError("expected a bare IP address, got {!r}".format(value))
+    return interface(value).ip
+
+
+def input_values(values: Sequence[str]) -> List[str]:
+    """Read newline/whitespace-separated inputs when empty or at a single '-'."""
+    values = values or ["-"]
+    if values.count("-") > 1:
+        raise ValueError("stdin ('-') can only be read once")
+    result: List[str] = []
+    for value in values:
+        if value == "-":
+            if sys.stdin.isatty():
+                raise ValueError("provide IP/CIDR arguments or pipe them through stdin")
+            result.extend(sys.stdin.read().split())
+        else:
+            result.append(value)
+    if not result:
+        raise ValueError("no IP/CIDR input provided")
+    return result
+
+
+def same_family(left: Union[IPAddress, IPNetwork], right: Union[IPAddress, IPNetwork]) -> None:
+    if left.version != right.version:
+        raise ValueError("this operation requires addresses of the same IP version")
+
+
+def is_subnet(candidate: IPNetwork, base: IPNetwork) -> bool:
+    if isinstance(candidate, ipaddress.IPv4Network) and isinstance(base, ipaddress.IPv4Network):
+        return candidate.subnet_of(base)
+    if isinstance(candidate, ipaddress.IPv6Network) and isinstance(base, ipaddress.IPv6Network):
+        return candidate.subnet_of(base)
+    return False
+
+
+def host_bounds(net: IPNetwork) -> Tuple[IPAddress, IPAddress, int]:
+    """Match ipaddress.hosts(), including point-to-point and single-host nets."""
+    first, last = int(net.network_address), int(net.broadcast_address)
+    if net.num_addresses > 2:
+        first += 1
+        if net.version == 4:
+            last -= 1
+    address_type = type(net.network_address)
+    return address_type(first), address_type(last), last - first + 1
+
+
+def neighbor(net: IPNetwork, offset: int) -> Optional[IPNetwork]:
+    start = int(net.network_address) + offset * net.num_addresses
+    if 0 <= start < 1 << net.max_prefixlen:
+        return type(net)((start, net.prefixlen))
+    return None
+
+
+def inspect_network(value: str) -> NetworkInfo:
+    parsed = interface(value)
+    net = parsed.network
+    first, last, count = host_bounds(net)
+    previous, following = neighbor(net, -1), neighbor(net, 1)
+    return {
+        "input": value,
+        "ip": str(parsed.ip),
+        "version": net.version,
+        "network": str(net),
+        "prefix_length": net.prefixlen,
+        "netmask": str(net.netmask),
+        "wildcard_mask": str(net.hostmask) if net.version == 4 else None,
+        "broadcast": str(net.broadcast_address) if net.version == 4 else None,
+        "first_address": str(net.network_address),
+        "last_address": str(net.broadcast_address),
+        "address_count": net.num_addresses,
+        "first_host": str(first),
+        "last_host": str(last),
+        "host_count": count,
+        "previous_network": str(previous) if previous is not None else None,
+        "next_network": str(following) if following is not None else None,
+    }
+
+
+def inspection_lines(info: NetworkInfo) -> List[str]:
+    rows: List[Tuple[str, Union[str, int, None]]] = [
+        ("Input", info["input"]),
+        ("IP address", info["ip"]),
+        ("IP version", info["version"]),
+        ("Network", info["network"]),
+        ("Prefix length", info["prefix_length"]),
+        ("Netmask", info["netmask"]),
+    ]
+    if info["version"] == 4:
+        rows.extend([
+            ("Wildcard mask", info["wildcard_mask"]),
+            ("Broadcast", info["broadcast"]),
+        ])
+    rows.extend([
+        ("Address range", "{} - {}".format(info["first_address"], info["last_address"])),
+        ("Addresses", format(info["address_count"], ",")),
+        ("Usable host range", "{} - {}".format(info["first_host"], info["last_host"])),
+        ("Usable hosts", format(info["host_count"], ",")),
+        ("Previous network", info["previous_network"] or "none (address-space boundary)"),
+        ("Current network", info["network"]),
+        ("Next network", info["next_network"] or "none (address-space boundary)"),
+    ])
+    return ["{:<19} {}".format(label, value) for label, value in rows]
+
+
+def collapsed(networks: Sequence[IPNetwork]) -> List[IPNetwork]:
+    # ipaddress rejects mixed families; each family can be collapsed separately.
+    return [
+        *ipaddress.collapse_addresses(
+            item for item in networks if isinstance(item, ipaddress.IPv4Network)
+        ),
+        *ipaddress.collapse_addresses(
+            item for item in networks if isinstance(item, ipaddress.IPv6Network)
+        ),
+    ]
+
+
+def exclude_networks(base: IPNetwork, exclusions: Sequence[IPNetwork]) -> List[IPNetwork]:
+    """Subtract the union of exclusions, clipping them to the base network."""
+    for excluded in exclusions:
+        same_family(base, excluded)
+    address_type = type(base.network_address)
+    cursor, end = int(base.network_address), int(base.broadcast_address)
+    result: List[IPNetwork] = []
+    for excluded in collapsed(exclusions):
+        first = max(int(excluded.network_address), int(base.network_address))
+        last = min(int(excluded.broadcast_address), end)
+        if first > last:
+            continue
+        if cursor < first:
+            result.extend(ipaddress.summarize_address_range(
+                address_type(cursor), address_type(first - 1)
+            ))
+        cursor = max(cursor, last + 1)
+    if cursor <= end:
+        result.extend(ipaddress.summarize_address_range(
+            address_type(cursor), address_type(end)
+        ))
+    return result
+
+
+def limited_result(
+    net: IPNetwork,
+    items: Iterable[object],
+    total: int,
+    limit: int,
+    key: str,
+) -> CommandResult:
+    values = [str(item) for item in itertools.islice(items, limit)]
+    result = {
+        "network": str(net), key: values, "total": total,
+        "returned": len(values), "truncated": total > len(values),
+    }
+    return result, values, 0
+
+
+def run(args: argparse.Namespace) -> CommandResult:
+    command = args.command
+    if command == "inspect":
+        inspections = [inspect_network(value) for value in input_values(args.cidrs)]
+        lines: List[str] = []
+        for info in inspections:
+            if lines:
+                lines.append("")
+            lines.extend(inspection_lines(info))
+        return inspections[0] if len(inspections) == 1 else inspections, lines, 0
+
+    if command == "nearby":
+        net = network(args.cidr)
+        index = int(net.network_address) // net.num_addresses
+        max_index = (1 << net.prefixlen) - 1
+        first, last = max(0, index - args.count), min(max_index, index + args.count)
+        total = last - first + 1
+        if total > args.limit:
+            raise ValueError(
+                "nearby would output {} networks (limit {}); reduce --count "
+                "or increase --limit".format(total, args.limit)
+            )
+        rows: List[NearbyNetwork] = []
+        for offset in range(first - index, last - index + 1):
+            item = neighbor(net, offset)
+            # The bounds above keep every offset within this address family.
+            assert item is not None
+            rows.append({
+                "network": str(item), "offset": offset,
+                "current": offset == 0,
+                "first_address": str(item.network_address),
+                "last_address": str(item.broadcast_address),
+            })
+        width = max(len(row["network"]) for row in rows)
+        lines = [
+            "{} {:<{}}  {} - {}".format(
+                "->" if row["current"] else "  ", row["network"], width,
+                row["first_address"], row["last_address"],
+            )
+            for row in rows
+        ]
+        return {"network": str(net), "networks": rows}, lines, 0
+
+    if command in ("contains", "overlaps"):
+        base = network(args.cidr)
+        candidates = [network(value) for value in input_values(args.others)]
+        results: List[NetworkCheck] = []
+        lines = []
+        for candidate in candidates:
+            matches = False
+            relationship = "different IP versions"
+            if base.version == candidate.version:
+                if base == candidate:
+                    relationship = "equal"
+                elif is_subnet(candidate, base):
+                    relationship = "contains"
+                elif is_subnet(base, candidate):
+                    relationship = "contained by"
+                else:
+                    relationship = "disjoint"
+                matches = (
+                    is_subnet(candidate, base) if command == "contains"
+                    else base.overlaps(candidate)
+                )
+            results.append({
+                "network": str(base), "candidate": str(candidate),
+                "result": matches, "relationship": relationship,
+            })
+            lines.append("{}: {} {} {} ({})".format(
+                "true" if matches else "false", base, command, candidate, relationship
+            ))
+        return results[0] if len(results) == 1 else results, lines, int(
+            not all(row["result"] for row in results)
+        )
+
+    if command == "split":
+        net = network(args.cidr)
+        if not net.prefixlen <= args.prefix <= net.max_prefixlen:
+            raise ValueError("--prefix must be between {} and {}".format(
+                net.prefixlen, net.max_prefixlen
+            ))
+        return limited_result(
+            net, net.subnets(new_prefix=args.prefix),
+            1 << (args.prefix - net.prefixlen), args.limit, "networks",
+        )
+
+    if command == "collapse":
+        networks = collapsed([network(value) for value in input_values(args.cidrs)])
+        values = [str(net) for net in networks]
+        return {"networks": values}, values, 0
+
+    if command == "range":
+        range_start, range_end = address(args.start), address(args.end)
+        same_family(range_start, range_end)
+        if int(range_start) > int(range_end):
+            raise ValueError("range start must not be greater than range end")
+        values = [str(net) for net in ipaddress.summarize_address_range(range_start, range_end)]
+        return {"start": str(range_start), "end": str(range_end), "networks": values}, values, 0
+
+    if command == "exclude":
+        base = network(args.cidr)
+        exclusions = [network(value) for value in input_values(args.exclusions)]
+        values = [str(net) for net in exclude_networks(base, exclusions)]
+        return {"network": str(base), "networks": values}, values, 0
+
+    if command == "hosts":
+        net = network(args.cidr)
+        total = net.num_addresses if args.all else host_bounds(net)[2]
+        return limited_result(
+            net, iter(net) if args.all else net.hosts(), total, args.limit, "addresses"
+        )
+
+    raise ValueError("unknown command: {}".format(command))
+
+
+def build_parser() -> argparse.ArgumentParser:
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument(
+        "--json", action="store_true", default=argparse.SUPPRESS,
+        help="write JSON instead of human-readable output",
+    )
+    parser = argparse.ArgumentParser(
+        description="Calculate IPv4/IPv6 networks. A bare IP/CIDR defaults to inspect.",
+        parents=[common], formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  cidr 192.168.2.42/24
+  cidr nearby 192.168.2.0/24 --count 2
+  cidr contains 10.0.0.0/8 10.2.3.4
+  cidr split 10.0.0.0/24 --prefix 26
+  cidr range 192.168.1.10 192.168.1.100
+  printf '%s\\n' 10.0.0.0/25 10.0.0.128/25 | cidr collapse
+  cidr hosts 2001:db8::/64 --limit 5 --json
+
+Bulk inputs: inspect, collapse, contains, overlaps and exclude read stdin
+when their variadic arguments are omitted, or where '-' appears.
+Exit codes: 0 = success/all checks true, 1 = any check false, 2 = invalid input.
+IPv6 hosts exclude subnet-router anycast except for /127 and /128.
+""",
+    )
+    subparsers = parser.add_subparsers(dest="command")
+    descriptions = {
+        "inspect": "show network details and adjacent networks (default)",
+        "nearby": "show nearby networks of the same prefix length",
+        "contains": "check whether a network contains IPs or subnets",
+        "overlaps": "check overlap and report containment relationships",
+        "split": "split into subnets of a given prefix length",
+        "collapse": "merge into the smallest equivalent set of CIDRs",
+        "range": "convert an inclusive IP range to exact CIDRs",
+        "exclude": "subtract IPs or networks from a network",
+        "hosts": "list usable host addresses",
+    }
+    for command in COMMANDS:
+        sub = subparsers.add_parser(
+            command, parents=[common], help=descriptions[command],
+            description=descriptions[command],
+        )
+        if command in ("inspect", "collapse"):
+            sub.add_argument("cidrs", nargs="*", metavar="IP/CIDR", help="inputs or '-' for stdin")
+        elif command == "range":
+            sub.add_argument("start", help="first IP address, inclusive")
+            sub.add_argument("end", help="last IP address, inclusive")
+        else:
+            sub.add_argument("cidr", metavar="CIDR")
+        if command == "nearby":
+            sub.add_argument(
+                "--count", type=nonnegative_int, default=3,
+                help="networks on each side of the input (default: 3)",
+            )
+        if command in ("contains", "overlaps"):
+            sub.add_argument("others", nargs="*", metavar="IP/CIDR", help="candidates or '-' for stdin")
+        if command == "split":
+            sub.add_argument("--prefix", type=int, required=True, help="new prefix length")
+        if command == "exclude":
+            sub.add_argument("exclusions", nargs="*", metavar="IP/CIDR", help="exclusions or '-' for stdin")
+        if command == "hosts":
+            sub.add_argument("--all", action="store_true", help="include every address in the network")
+        if command in ("hosts", "split", "nearby"):
+            sub.add_argument(
+                "--limit", type=positive_int, default=DEFAULT_LIMIT,
+                help="maximum output entries (default: {}); {}".format(
+                    DEFAULT_LIMIT,
+                    "rejects larger views" if command == "nearby" else "reports truncation",
+                ),
+            )
+    return parser
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = build_parser()
+    argv = list(sys.argv[1:] if argv is None else argv)
+    # Recognize the shorthand even when --json precedes the IP/CIDR.
+    positional = [arg for arg in argv if arg != "--json"]
+    if positional and positional[0] not in COMMANDS + ("-h", "--help"):
+        argv.insert(0, "inspect")
+    elif not positional:
+        if sys.stdin.isatty():
+            parser.print_help()
+            return 0
+        argv.append("inspect")
+    # Keep the default outside the shared argparse action so subcommands do not
+    # overwrite a --json flag supplied before the command.
+    args = parser.parse_args(argv, namespace=argparse.Namespace(json=False))
+    try:
+        data, lines, status = run(args)
+    except ValueError as error:
+        parser.error(str(error))
+    if args.json:
+        print(json.dumps(data, indent=2))
+    else:
+        for line in lines:
+            print(line)
+        if isinstance(data, dict) and data.get("truncated"):
+            summary = "showing {} of {} entries".format(
+                data["returned"], data["total"]
+            )
+            print("cidr: {}; increase --limit to show more".format(summary), file=sys.stderr)
+    return status
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except BrokenPipeError:
+        # Avoid a traceback (including during shutdown) when piping into head.
+        with open(os.devnull, "w") as sink:
+            os.dup2(sink.fileno(), sys.stdout.fileno())
+        sys.exit(0)
+    except KeyboardInterrupt:
+        sys.exit(130)
