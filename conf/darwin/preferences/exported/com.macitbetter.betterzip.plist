@@ -231,6 +231,8 @@
 	</array>
 	<key>MIBShouldTerminateAfterLastWindowClosed2</key>
 	<true/>
+	<key>MIBShowFinderButton</key>
+	<false/>
 	<key>MIBShowFinderContextualMenu</key>
 	<true/>
 	<key>MIBShowPasswords</key>
