@@ -37,6 +37,13 @@ zstyle ':z4h:autosuggestions' forward-char 'accept'
 
 # Recursively traverse directories when TAB-completing files.
 zstyle ':z4h:fzf-complete' recurse-dirs 'no'
+# Newer oh-my-zsh snapshots (installed from master, so each machine freezes a
+# different one) bind TAB to zsh-z's _zshz_zle_completion_widget, which then
+# delegates to z4h-fzf-complete with $WIDGET still naming the wrapper. z4h
+# derives its zstyle context from $WIDGET, so without this second line
+# recurse-dirs is unset for that context and defaults to 'yes' — `cd <Tab>`
+# then lists subdirectories recursively.
+zstyle ':z4h:_zshz_zle_completion_widget' recurse-dirs 'no'
 
 # Enable direnv to automatically source .envrc files.
 zstyle ':z4h:direnv' enable 'no'
@@ -138,6 +145,13 @@ default_plugins=(
 # Load custom plugins
 source "$DOTFILES_ROOT/custom-omz-plugins.sh"
 plugins_all=("${default_plugins[@]}" "${custom_additional_plugins[@]}")
+
+# Pin oh-my-zsh (2026-10-08 master). Without a ref z4h installs omz from
+# master.tar.gz, so every new machine freezes a different snapshot and
+# behavior drifts (e.g. newer zsh-z grabs TAB from z4h). A no-op where omz
+# is already installed; use `z4h install -f ohmyzsh/ohmyzsh@<sha>` to
+# re-pin an existing machine (not as root).
+z4h install ohmyzsh/ohmyzsh@60c9a7a839b790cd905d0fd4419435124fd1bdc0
 
 for p in "${plugins_all[@]}"; do
     z4h load ohmyzsh/ohmyzsh/plugins/$p
