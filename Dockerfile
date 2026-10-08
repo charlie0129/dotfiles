@@ -14,7 +14,6 @@ RUN apt-get install -y --no-install-recommends \
     zsh    \
     vim    \
     tmux   \
-    neovim \
     git    \
     curl
 

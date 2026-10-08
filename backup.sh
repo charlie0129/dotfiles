@@ -23,7 +23,6 @@ BACKUP_FILES=(
 SKIP_DIRS=(
     ".DS_Store"
     "._*"
-    "dotfiles/dep/awesome-vimrc/temp_dirs"
 )
 
 # tar BACKUP_DIST

@@ -115,7 +115,7 @@ alias bat="bat --paging=never"
 alias setwrap="tput smam"
 alias setnowrap="tput rmam"
 
-# Minimal config has no git aliases, so we add some here.
+# Some git aliases.
 # They are from ohmyzsh git plugin.
 alias ga='git add'
 alias gaa='git add --all'

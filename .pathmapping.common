@@ -12,8 +12,5 @@
 # xmodmap config
 .Xmodmap:$HOME/.Xmodmap
 
-# neovim config
-nvim:$DOTFILES_ROOT/dep/nvchad/lua/custom
-
 # vimrc
 .vimrc:$HOME/.vimrc
