@@ -31,9 +31,6 @@ zstyle ':z4h:' start-tmux no
 # Mark up shell's output with semantic information.
 zstyle ':z4h:' term-shell-integration 'yes'
 
-# No, I don't Homebrew integration. The searching takes forever.
-zstyle :z4h:homebrew-command-not-found channel none
-
 # Right-arrow key accepts one character ('partial-accept') from
 # command autosuggestions or the whole thing ('accept')?
 zstyle ':z4h:autosuggestions' forward-char 'accept'
@@ -153,6 +150,13 @@ done
 # Set shell options: http://zsh.sourceforge.net/Doc/Release/Options.html.
 setopt glob_dots    # no special treatment for file names with a leading dot
 setopt no_auto_menu # require an extra TAB press to open the completion menu
+
+# DIRSTACKSIZE=0 makes z4h skip its startup dir-history seeding
+# (-z4h-update-dir-history stats every entry of the persistent history; cold
+# metadata / iCloud paths can block for seconds). Trade-off: new shells no
+# longer preload `dirs`/`cd -N` with directories visited in other shells.
+# In-session pushd/dirs are unaffected.
+typeset -g DIRSTACKSIZE=0
 
 ############################ END Shell Opts ############################
 
