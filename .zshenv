@@ -16,6 +16,22 @@ if [ -n "${ZSH_VERSION-}" ]; then
   #
   # Do not change anything else in this file.
 
+  # Coding agents (Claude Code, Codex) write bash but run it with `zsh -c`.
+  # Give those command strings bash-like word splitting, globbing (unmatched
+  # patterns stay literal, no `=cmd`), echo, redirections and `${a[0]}`.
+  # Agent env vars don't survive ssh, so also match what sshd runs for
+  # `ssh host 'cmd'` (SSH_CONNECTION set, SHLVL 1). Scripts and interactive
+  # shells keep zsh semantics. Must stay above the z4h `return` below, and
+  # `{ }` instead of `[[ ( ) ]]` keeps this file parseable by sh, which
+  # sources it during z4h bootstrap.
+  if [[ ! -o interactive && -n ${ZSH_EXECUTION_STRING+x} ]] && {
+    [[ -n ${CLAUDECODE-}${CODEX_THREAD_ID-} ]] ||
+    [[ -n ${SSH_CONNECTION-} && $SHLVL == 1 ]]
+  }; then
+    setopt sh_word_split ksh_zero_subscript typeset_silent no_bg_nice \
+      no_nomatch no_bad_pattern no_equals bsd_echo no_multios sh_nullcmd
+  fi
+
   : ${ZDOTDIR:=~}
   setopt no_global_rcs
   [[ -o no_interactive && -z "${Z4H_BOOTSTRAPPING-}" ]] && return
