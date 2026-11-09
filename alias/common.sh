@@ -53,6 +53,8 @@ fi
 # Common mistakes
 alias code.="code ."
 alias code,="code ."
+alias zed.="code ."
+alias zed˝,="code ."
 alias cd..="cd .."
 
 # Setup local proxy

@@ -48,8 +48,11 @@ sudo nvram AutoBoot="%00"
 
 # Enable verbose booting, disable darkwake, keep symbols on crash, enable arm64e abi. SIP must be disabled before running this." &&
 if [[ "$(csrutil status)" =~ "disabled" ]]; then
-    # amfi_get_out_of_my_way=0x1 breaks dexts (e.g., karabiner elements) so amfi_allow_any_signature is used instead
-    sudo nvram boot-args="-v darkwake=0 keepsyms=1 -arm64e_preview_abi amfi_allow_any_signature=1"
+    # Note:
+    #   with "amfi_get_out_of_my_way=1", it breaks dexts (e.g., karabiner elements).
+    #   either remove "amfi_get_out_of_my_way=1" or use "amfi_allow_any_signature=1".
+    # https://github.com/dazi2011/macos-java-sigbus-codeheap-allocate-fix for why "sprr_tpro=0 sprr_tpro_pagers=0" is added
+    sudo nvram boot-args="-v darkwake=0 keepsyms=1 -arm64e_preview_abi ipc_control_port_options=0 amfi_get_out_of_my_way=1 sprr_tpro=0 sprr_tpro_pagers=0"
 else
     echo "==> SIP is enabled. Skipping boot args configuration."
 fi

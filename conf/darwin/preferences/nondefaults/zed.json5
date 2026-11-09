@@ -9,7 +9,8 @@
 {
   "telemetry": {
     "metrics": false,
-    "diagnostics": false
+    "diagnostics": false,
+    "anthropic_retention": false
   },
   "theme": {
     "mode": "system",
